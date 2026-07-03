@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DC July 3 Bilingual Itinerary Map - Fixed Render</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+ integrity="sha256-p4NxAoJBhIINfQEY1pk5PpAxXo9dKP3aS9dEPWob7B4=" crossorigin=""/>
+<style>
+  :root {
+    --bg:#0f172a; --card:#fff; --muted:#64748b; --text:#111827; --line:#e5e7eb;
+    --accent:#2563eb; --warn:#dc2626; --amber:#b45309; --green:#047857; --shadow:0 1px 3px rgba(15,23,42,.08);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; color:var(--text); background:#f8fafc; }
+  header { padding:15px 18px; background:var(--bg); color:white; display:flex; gap:12px; justify-content:space-between; align-items:flex-start; }
+  header h1 { margin:0 0 6px; font-size:20px; line-height:1.15; }
+  header p { margin:0; color:#cbd5e1; font-size:14px; line-height:1.35; }
+  .langBtns { display:flex; gap:8px; flex:0 0 auto; }
+  .langBtns button { border:1px solid rgba(255,255,255,.35); background:#1e293b; color:white; border-radius:999px; padding:8px 11px; font-weight:800; }
+  .langBtns button.active { background:white; color:#0f172a; }
+  .layout { display:grid; grid-template-columns:450px 1fr; min-height:calc(100vh - 80px); }
+  aside { overflow:auto; max-height:calc(100vh - 80px); border-right:1px solid var(--line); background:#f8fafc; padding:14px; }
+  #map { min-height:calc(100vh - 80px); width:100%; background:#e2e8f0; position:relative; overflow:hidden; }
+  .sectionTitle { font-size:15px; margin:18px 0 8px; color:#0f172a; }
+  .card,.parkingItem,.notice { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:10px; box-shadow:var(--shadow); }
+  .cardTop { display:flex; gap:10px; align-items:flex-start; }
+  .badge { flex:0 0 auto; width:30px; height:30px; border-radius:50%; display:grid; place-items:center; color:white; font-weight:900; background:var(--accent); }
+  .monument .badge { background:var(--green); } .food .badge { background:var(--amber); } .start .badge { background:#475569; }
+  p { font-size:13px; color:#334155; line-height:1.38; margin:8px 0; }
+  .addr { font-size:12px; color:var(--muted); margin:6px 0 10px; }
+  .btn { display:inline-block; text-decoration:none; font-size:13px; font-weight:800; padding:8px 10px; border-radius:10px; background:var(--accent); color:white; margin-top:8px; }
+  .btn.secondary { background:#334155; }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 4px; }
+  .toolbar button { border:1px solid var(--line); background:white; border-radius:10px; padding:8px 10px; font-weight:800; }
+  .legend { display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px; color:#334155; margin-top:8px; }
+  .dot { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:5px; vertical-align:-1px; }
+  .blue { background:var(--accent); } .green { background:var(--green); } .amber { background:var(--amber); } .red { background:var(--warn); }
+  .leaflet-popup-content { font-size:13px; line-height:1.35; }
+  .popupTitle { font-weight:900; margin-bottom:4px; }
+  .popupBtn { display:inline-block; margin-top:7px; padding:6px 8px; border-radius:8px; background:#2563eb; color:white !important; text-decoration:none; font-weight:900; }
+  .small { font-size:12px; color:#475569; }
+  details { margin-top:8px; }
+  summary { cursor:pointer; font-size:13px; font-weight:900; color:#0f172a; margin-top:8px; }
+  ul { margin:7px 0 0 18px; padding:0; }
+  li { font-size:12.5px; line-height:1.35; margin:5px 0; color:#334155; }
+  .tipGroup { margin:8px 0 0; padding:8px 9px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; }
+  .tipGroup b { display:block; font-size:12.5px; margin-bottom:3px; color:#0f172a; }
+  .sourceLinks a { display:block; margin:6px 0; font-size:12px; color:#1d4ed8; }
+
+  .fallbackMap {
+    position:absolute; inset:0; background:
+      radial-gradient(circle at 70% 70%, rgba(59,130,246,.16), transparent 28%),
+      linear-gradient(135deg, rgba(255,255,255,.45) 0 25%, transparent 25% 50%, rgba(255,255,255,.45) 50% 75%, transparent 75%),
+      #dbeafe;
+    background-size:100% 100%, 34px 34px, auto;
+  }
+  .fallbackTitle {
+    position:absolute; top:12px; left:12px; right:12px; z-index:5;
+    background:rgba(255,255,255,.94); border:1px solid #cbd5e1; border-radius:14px; padding:10px 12px;
+    box-shadow:var(--shadow); font-size:13px;
+  }
+  .fallbackMarker, .fallbackParking {
+    position:absolute; transform:translate(-50%,-50%); z-index:4; border:2px solid white; color:white;
+    box-shadow:0 1px 7px rgba(15,23,42,.35); cursor:pointer; display:grid; place-items:center; font-weight:900;
+  }
+  .fallbackMarker { width:31px; height:31px; border-radius:50%; background:var(--accent); }
+  .fallbackMarker.monument { background:var(--green); }
+  .fallbackMarker.food { background:var(--amber); }
+  .fallbackMarker.start { background:#475569; }
+  .fallbackParking { width:29px; height:29px; border-radius:8px; background:#111827; }
+  .fallbackPopup {
+    position:absolute; left:12px; right:12px; bottom:12px; z-index:6; background:white; border:1px solid #cbd5e1;
+    border-radius:14px; padding:12px; box-shadow:0 6px 18px rgba(15,23,42,.22); max-height:38vh; overflow:auto;
+  }
+  .fallbackPopup .closeBtn { float:right; border:0; background:#e2e8f0; border-radius:8px; padding:4px 8px; font-weight:900; }
+  .fallbackLine { stroke:#2563eb; stroke-width:3; stroke-dasharray:7 7; fill:none; opacity:.62; }
+  .fallbackClosure { fill:rgba(220,38,38,.14); stroke:#dc2626; stroke-width:2; stroke-dasharray:5 5; }
+  .mapError { color:#334155; margin-top:4px; font-size:12px; }
+  @media (max-width:860px) {
+    header { display:block; } .langBtns { margin-top:10px; } .layout { grid-template-columns:1fr; }
+    aside { max-height:none; border-right:0; border-bottom:1px solid var(--line); } #map { min-height:70vh; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div><h1 id="title"></h1><p id="subtitle"></p></div>
+  <div class="langBtns"><button id="btn-en" onclick="setLang('en')">English</button><button id="btn-es" onclick="setLang('es')">Español</button></div>
+</header>
+<div class="layout">
+  <aside>
+    <div class="notice">
+      <b id="drivingRule"></b><p id="drivingText"></p><p class="small" id="routeWarning"></p>
+      <div class="legend">
+        <span><i class="dot blue"></i><span id="legendMuseum"></span></span>
+        <span><i class="dot amber"></i><span id="legendFood"></span></span>
+        <span><i class="dot green"></i><span id="legendMonument"></span></span>
+        <span><i class="dot red"></i><span id="legendClosure"></span></span>
+      </div>
+    </div>
+    <div class="notice">
+      <b id="flexDisclaimerTitle"></b>
+      <p id="flexDisclaimerText"></p>
+    </div>
+    <div class="toolbar">
+      <button id="full" onclick="zoomItinerary()"></button>
+      <button id="museums" onclick="zoomMuseums()"></button>
+      <button id="wharf" onclick="zoomWharf()"></button>
+      <button id="monuments" onclick="zoomMonuments()"></button>
+    </div>
+    <h2 class="sectionTitle" id="mainItinerary"></h2><div id="cards"></div>
+    <h2 class="sectionTitle" id="parkingOptions"></h2><div id="parkingCards"></div>
+    <h2 class="sectionTitle" id="cutoffs"></h2><div class="notice"><div id="cutoffBullets"></div></div>
+    <h2 class="sectionTitle" id="sourceLinks"></h2><div class="notice sourceLinks" id="sources"></div>
+  </aside>
+  <main id="map"></main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+ integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+const stops = [{"num": "0", "time": "2:00 PM", "lat": 38.9846, "lon": -77.0846, "type": "start", "gmaps": "https://www.google.com/maps/search/?api=1&query=4229+East+West+Highway+Bethesda+MD", "en": {"name": "Rental / starting area", "address": "4229 East West Hwy, Bethesda, MD", "desc": "Leave at 2:00 PM. Use live GPS because July 4th setup and security closures make normal DC routes unreliable.", "must": ["Confirm Air and Space timed-entry passes before leaving.", "Keep water in the car; the first stretch is heat plus traffic.", "Do not rely on street parking in the Mall core."], "interesting": ["The route is built north-to-south so you do not keep crossing the Mall closure zone."], "tips": {"Arrival/drop-off": ["Load everyone before setting navigation; downtown route decisions change fast today.", "Set the first destination to parking, not the museum, if one person is not doing drop-offs."], "Parking": ["First real parking target should be L’Enfant Plaza if you want one central garage.", "Street parking near the Mall is a bad bet today because closures and security zones change access."], "Inside strategy": ["Decide before leaving: full museum stack, or museum-light version if traffic is bad."], "Backup": ["If you leave after 2:20 PM, cut one museum: usually Spy if no tickets, or American Art if everyone mainly wants Air and Space."]}}, "es": {"name": "Renta / punto de salida", "address": "4229 East West Hwy, Bethesda, MD", "desc": "Salir a las 2:00 PM. Usar GPS en vivo porque los preparativos del 4 de julio y cierres de seguridad hacen que las rutas normales no sean confiables.", "must": ["Confirmar pases con horario para Air and Space antes de salir.", "Llevar agua en el carro; el primer tramo combina calor y tráfico.", "No depender de estacionamiento en la calle dentro del Mall."], "interesting": ["La ruta está armada de norte a sur para no cruzar varias veces la zona cerrada del National Mall."], "tips": {"Llegada/bajada": ["Subir a todos al carro antes de poner navegación; las rutas del centro cambian rápido hoy.", "Poner como primer destino el garage, no el museo, si no van a hacer bajadas rápidas."], "Parking": ["El primer destino real de parking debe ser L’Enfant Plaza si quieren un garage central.", "Estacionarse en la calle cerca del Mall es mala apuesta hoy por cierres y zonas de seguridad."], "Estrategia adentro": ["Decidir antes de salir: plan completo de museos o versión ligera si el tráfico está malo."], "Respaldo": ["Si salen después de 2:20 PM, cortar un museo: normalmente Spy si no hay boletos, o American Art si lo principal es Air and Space."]}}}, {"num": "1", "time": "2:45–4:10 PM", "lat": 38.8879, "lon": -77.0199, "type": "museum", "gmaps": "https://www.google.com/maps/search/?api=1&query=National+Air+and+Space+Museum+650+Jefferson+Dr+SW+Washington+DC", "en": {"name": "National Air and Space Museum", "address": "650 Jefferson Dr SW, Washington, DC", "desc": "Priority stop because it closes earliest and requires free timed-entry passes. Do it as a highlights visit, not the whole museum.", "must": ["1903 Wright Flyer — first successfully powered airplane.", "Apollo 11 Command Module Columbia — one of the strongest must-see objects.", "TEXTRON How Things Fly — hands-on interactives for teens.", "Boeing Milestones of Flight Hall — fastest big-picture aviation/space overview.", "New 2026 exhibitions — several galleries reopened July 1, so expect demand."], "interesting": ["Part of the museum remains in transformation, so check open exhibitions rather than assuming old galleries are available.", "Your pass lets you stay as long as you want once inside, but if you exit you need a separate pass to re-enter."], "tips": {"Arrival/drop-off": ["Drop grandparents at the Jefferson Drive entrance if heat is bad.", "If arriving late, do not browse the lobby; go straight to the highlighted objects."], "Parking": ["Best practical parking: L’Enfant Plaza Garage, 420 10th St SW, then walk or short Uber.", "Avoid trying to circle Jefferson Drive/Independence Avenue for street parking today."], "Inside strategy": ["Pick three: Wright Flyer, Apollo 11 Columbia, How Things Fly.", "Set a hard exit alarm for 4:05 PM so the rest of the day survives."], "Backup": ["No timed pass: skip this stop and use American Art / Portrait Gallery as the first museum.", "If the group is hot/tired, do only Boeing Milestones plus Apollo 11, then leave."]}}, "es": {"name": "Museo Nacional del Aire y el Espacio", "address": "650 Jefferson Dr SW, Washington, DC", "desc": "Primera prioridad porque cierra más temprano y requiere pases gratuitos con horario. Hacerlo como visita de puntos principales, no como museo completo.", "must": ["1903 Wright Flyer — primer avión con motor que voló con éxito.", "Apollo 11 Command Module Columbia — uno de los objetos más importantes para ver.", "TEXTRON How Things Fly — interactivo y bueno para adolescentes.", "Boeing Milestones of Flight Hall — resumen rápido de aviación y espacio.", "Exhibiciones nuevas 2026 — varias galerías reabrieron el 1 de julio, así que puede haber demanda."], "interesting": ["Parte del museo sigue en transformación, así que conviene revisar exhibiciones abiertas y no asumir que todo lo antiguo está disponible.", "El pase permite quedarse dentro sin límite, pero si salen necesitan otro pase para reentrar."], "tips": {"Llegada/bajada": ["Bajar a los abuelos en la entrada de Jefferson Drive si el calor está fuerte.", "Si llegan tarde, no perder tiempo en el lobby; ir directo a los objetos principales."], "Parking": ["Mejor parking práctico: L’Enfant Plaza Garage, 420 10th St SW, y caminar o tomar Uber corto.", "Evitar dar vueltas por Jefferson Drive/Independence Avenue buscando calle hoy."], "Estrategia adentro": ["Escoger tres: Wright Flyer, Apollo 11 Columbia, How Things Fly.", "Poner alarma de salida a las 4:05 PM para que el resto del día funcione."], "Respaldo": ["Sin pase con horario: saltar este stop y empezar con American Art / Portrait Gallery.", "Si el grupo está cansado o con calor, hacer solo Boeing Milestones y Apollo 11, luego salir."]}}}, {"num": "2", "time": "4:25–6:00 PM", "lat": 38.8978, "lon": -77.023, "type": "museum", "gmaps": "https://www.google.com/maps/search/?api=1&query=Smithsonian+American+Art+Museum+8th+and+G+St+NW+Washington+DC", "en": {"name": "Smithsonian American Art Museum / National Portrait Gallery", "address": "8th & G St NW, Washington, DC", "desc": "Indoor AC, no ticket required, and open later than most Smithsonian museums. It shares one historic building with the National Portrait Gallery.", "must": ["Kogod Courtyard — best seated AC break.", "America’s Presidents — complete presidential portrait collection outside the White House.", "SAAM collection highlights — American art from early work to modern/contemporary.", "Historic Patent Office Building — the building itself is part of the visit.", "Latinx and American sculpture areas — good less-generic collection areas."], "interesting": ["This building was the old U.S. Patent Office.", "The courtyard is the recovery stop: sit, cool down, and reset before Spy Museum."], "tips": {"Arrival/drop-off": ["Use 8th & G St NW as the walking target.", "If someone is parking, drop the grandparents near the entrance and meet inside at Kogod Courtyard."], "Parking": ["Use a Gallery Place/Penn Quarter paid garage near 8th & G; do not plan around street parking.", "If traffic northbound looks ugly, skip this and stay near L’Enfant/Wharf."], "Inside strategy": ["Start with Kogod Courtyard first, not last.", "Do Presidents + one SAAM wing; do not split the group across multiple floors unless phones are charged."], "Backup": ["If arrival is after 5:30, make it only Kogod Courtyard + Presidents.", "If the teens are bored, use it as a 30-minute cooling stop, not a full museum."]}}, "es": {"name": "Museo Smithsonian de Arte Americano / Galería Nacional de Retratos", "address": "8th & G St NW, Washington, DC", "desc": "Con aire acondicionado, sin boleto, y abierto más tarde que muchos museos Smithsonian. Comparte edificio histórico con la Galería Nacional de Retratos.", "must": ["Kogod Courtyard — mejor pausa sentados con aire acondicionado.", "America’s Presidents — colección completa de retratos presidenciales fuera de la Casa Blanca.", "Obras principales del SAAM — arte americano desde temprano hasta moderno/contemporáneo.", "Antigua Oficina de Patentes — el edificio también es parte de la visita.", "Áreas Latinx y de escultura americana — buenas zonas menos típicas."], "interesting": ["Este edificio fue la antigua Oficina de Patentes de EE.UU.", "El courtyard es la parada de recuperación: sentarse, enfriarse y reiniciar antes del Spy Museum."], "tips": {"Llegada/bajada": ["Usar 8th & G St NW como punto de llegada.", "Si alguien va a estacionar, bajar a los abuelos cerca de la entrada y reunirse en Kogod Courtyard."], "Parking": ["Usar un garage pagado de Gallery Place/Penn Quarter cerca de 8th & G; no contar con calle.", "Si el tráfico hacia el norte está feo, saltarlo y quedarse cerca de L’Enfant/Wharf."], "Estrategia adentro": ["Empezar con Kogod Courtyard, no dejarlo para el final.", "Hacer Presidentes + una ala del SAAM; no dividir al grupo por pisos si los celulares no tienen batería."], "Respaldo": ["Si llegan después de 5:30, hacerlo solo como Kogod Courtyard + Presidentes.", "Si los adolescentes se aburren, usarlo como pausa de 30 minutos con aire, no museo completo."]}}}, {"num": "3", "time": "6:15–7:45 PM", "lat": 38.8848, "lon": -77.0258, "type": "museum", "gmaps": "https://www.google.com/maps/search/?api=1&query=International+Spy+Museum+700+L%27Enfant+Plaza+SW+Washington+DC", "en": {"name": "International Spy Museum", "address": "700 L'Enfant Plaza SW, Washington, DC", "desc": "Best stop for the boys. Buy timed tickets first. Treat it as a focused visit because the full museum can take longer.", "must": ["Undercover Mission — each visitor gets a cover identity.", "Interactive skill stations — memory, observation, risk, and decision challenges.", "Spy gadgets and disguise artifacts.", "Codebreaking, surveillance, and intelligence history.", "Debriefing Center — mission performance check at the end."], "interesting": ["This is not a Smithsonian; it is a paid independent museum.", "The Museum is at L’Enfant Plaza and is walkable to The Wharf."], "tips": {"Arrival/drop-off": ["Use 700 L’Enfant Plaza SW as the destination.", "For accessibility, use the ACE/L’Enfant garage route with elevators to Plaza level instead of trying to enter from Lower 10th Street."], "Parking": ["Best parking: L’Enfant Plaza / ACE garage near 420 10th St SW.", "Do not move to Wharf parking yet unless you are skipping Spy."], "Inside strategy": ["Let the boys control the interactive mission; grandparents can skip slower text-heavy areas.", "Do not start the gift shop until the end or you will lose time."], "Backup": ["If no tickets or arrival is after 6:45, skip Spy and go directly to The Wharf.", "If everyone is hungry, do Wharf first; Spy is not a dinner stop."]}}, "es": {"name": "Museo Internacional del Espionaje", "address": "700 L'Enfant Plaza SW, Washington, DC", "desc": "La mejor parada para los muchachos. Comprar boletos con horario primero. Hacerlo como visita enfocada porque el museo completo puede tomar más tiempo.", "must": ["Undercover Mission — cada visitante recibe una identidad secreta.", "Estaciones interactivas — memoria, observación, riesgo y decisiones.", "Gadgets de espionaje y objetos de disfraces.", "Códigos, vigilancia e historia de inteligencia.", "Debriefing Center — revisión del desempeño de la misión al final."], "interesting": ["No es Smithsonian; es un museo independiente de pago.", "Está en L’Enfant Plaza y se puede llegar caminando a The Wharf."], "tips": {"Llegada/bajada": ["Usar 700 L’Enfant Plaza SW como destino.", "Para accesibilidad, usar el garage ACE/L’Enfant con elevadores al nivel Plaza en vez de intentar entrar desde Lower 10th Street."], "Parking": ["Mejor parking: L’Enfant Plaza / ACE garage cerca de 420 10th St SW.", "No mover el carro al Wharf todavía salvo que vayan a saltar Spy."], "Estrategia adentro": ["Dejar que los muchachos controlen la misión interactiva; los abuelos pueden saltar áreas lentas con mucho texto.", "No empezar la tienda hasta el final o se pierde tiempo."], "Respaldo": ["Si no hay boletos o llegan después de 6:45, saltar Spy e ir directo a The Wharf.", "Si todos tienen hambre, hacer Wharf primero; Spy no es parada de cena."]}}}, {"num": "4", "time": "7:45–9:15 PM", "lat": 38.8792, "lon": -77.0261, "type": "food", "gmaps": "https://www.google.com/maps/search/?api=1&query=The+Wharf+760+Maine+Ave+SW+Washington+DC", "en": {"name": "The Wharf", "address": "760 Maine Ave SW, Washington, DC", "desc": "Dinner, waterfront walk, marina views, drinks, ice cream, and a lower-stress evening area after the museums.", "must": ["Recreation Pier — swings, seating, games, water views, and the Wharf Torch area.", "Transit Pier — water taxi area and people-watching.", "District Pier / District Square — restaurants, shops, and activity core.", "Municipal Fish Market / Market Pier — older DC waterfront feel.", "Waterfront promenade — easiest low-effort walk for grandparents."], "interesting": ["The Wharf is a whole waterfront district, not one attraction.", "It has more than 80 restaurants and shops, plus multiple piers."], "tips": {"Arrival/drop-off": ["If coming from Spy, walking is possible, but use a short Uber if grandparents are tired.", "Set the meeting point as Recreation Pier or CVS/800 Maine Ave if the group splits."], "Parking": ["First try if moving the car: Wharf Garage 1, 700 Water St SW.", "Better backup/reservable option: L’Enfant Plaza, 420 10th St SW, two blocks north.", "Official Wharf garages are open 24 hours but can be expensive and cannot be reserved."], "Inside strategy": ["Eat first if everyone is hungry; walk the waterfront after sunset.", "For low-effort version: dinner + Recreation Pier only."], "Backup": ["If Wharf parking is full, go back to L’Enfant Plaza parking instead of circling Maine Ave.", "If restaurants are packed, grab casual food and use the waterfront walk as the main activity."]}}, "es": {"name": "The Wharf", "address": "760 Maine Ave SW, Washington, DC", "desc": "Cena, caminata frente al agua, vistas de la marina, bebidas, helado y una zona más fácil para terminar después de los museos.", "must": ["Recreation Pier — columpios, asientos, juegos, vistas al agua y zona del Wharf Torch.", "Transit Pier — área del water taxi y buen lugar para ver movimiento.", "District Pier / District Square — restaurantes, tiendas y centro de actividad.", "Municipal Fish Market / Market Pier — sensación más antigua del waterfront de DC.", "Promenade frente al agua — caminata fácil para los abuelos."], "interesting": ["The Wharf es un distrito completo frente al agua, no una sola atracción.", "Tiene más de 80 restaurantes y tiendas, además de varios muelles."], "tips": {"Llegada/bajada": ["Si vienen de Spy, se puede caminar, pero tomar Uber corto si los abuelos están cansados.", "Poner como punto de reunión Recreation Pier o CVS/800 Maine Ave si el grupo se separa."], "Parking": ["Primera opción si mueven el carro: Wharf Garage 1, 700 Water St SW.", "Mejor respaldo/reservable: L’Enfant Plaza, 420 10th St SW, dos cuadras al norte.", "Los garages oficiales del Wharf abren 24 horas pero pueden ser caros y no se reservan."], "Estrategia adentro": ["Cenar primero si todos tienen hambre; caminar frente al agua después del atardecer.", "Versión de bajo esfuerzo: cena + Recreation Pier solamente."], "Respaldo": ["Si el parking del Wharf está lleno, volver a L’Enfant Plaza en vez de dar vueltas por Maine Ave.", "Si los restaurantes están llenos, comprar comida casual y usar la caminata frente al agua como actividad principal."]}}}, {"num": "5", "time": "9:15–10:00 PM", "lat": 38.8814, "lon": -77.0365, "type": "monument", "gmaps": "https://www.google.com/maps/search/?api=1&query=Thomas+Jefferson+Memorial+Washington+DC", "en": {"name": "Thomas Jefferson Memorial", "address": "16 E Basin Dr SW, Washington, DC", "desc": "Best remaining monument after dinner. Do this before 10 PM if driving because road access gets worse later.", "must": ["19-foot bronze Jefferson statue inside the circular colonnade.", "Tidal Basin view — best photo angle at night.", "Interior inscriptions — Declaration of Independence and liberty themes.", "Classical dome/temple design — the architecture is the point."], "interesting": ["The memorial was completed in 1943.", "It is designed like a classical temple, which is why it feels more Roman than modern."], "tips": {"Arrival/drop-off": ["Use Uber/drop-off if possible; late-night parking is the least predictable part.", "Aim to arrive by 9:15–9:30. After 10 PM, road closures become the problem."], "Parking": ["Do not hunt long for parking around Tidal Basin tonight.", "If live GPS shows closure congestion, skip and return another night."], "Inside strategy": ["Do the dome/statue first, then the water view.", "Keep it to 20–30 minutes; this is the visual payoff stop, not a long walk."], "Backup": ["If access is blocked, do Washington Monument exterior from a distance instead.", "If grandparents are tired, skip FDR and leave after Jefferson."]}}, "es": {"name": "Memorial de Thomas Jefferson", "address": "16 E Basin Dr SW, Washington, DC", "desc": "Mejor monumento restante después de cenar. Hacerlo antes de las 10 PM si van manejando porque el acceso se complica más tarde.", "must": ["Estatua de bronce de Jefferson de 19 pies dentro de la columnata circular.", "Vista del Tidal Basin — mejor ángulo de foto por la noche.", "Inscripciones interiores — Declaración de Independencia y temas de libertad.", "Diseño de cúpula/templo clásico — la arquitectura es parte central."], "interesting": ["El memorial se completó en 1943.", "Está diseñado como templo clásico, por eso se siente más romano que moderno."], "tips": {"Llegada/bajada": ["Usar Uber/bajada si es posible; el parking nocturno es lo menos predecible.", "Intentar llegar 9:15–9:30. Después de las 10 PM, los cierres son el problema."], "Parking": ["No perder mucho tiempo buscando parking alrededor del Tidal Basin hoy.", "Si el GPS muestra congestión por cierres, saltarlo y regresar otra noche."], "Estrategia adentro": ["Ver primero la cúpula/estatua y luego la vista al agua.", "Mantenerlo en 20–30 minutos; es parada visual, no caminata larga."], "Respaldo": ["Si el acceso está bloqueado, hacer exterior del Washington Monument desde lejos.", "Si los abuelos están cansados, saltar FDR y salir después de Jefferson."]}}}, {"num": "6", "time": "Optional 10:00–10:30 PM", "lat": 38.8833, "lon": -77.043, "type": "monument", "gmaps": "https://www.google.com/maps/search/?api=1&query=Franklin+Delano+Roosevelt+Memorial+Washington+DC", "en": {"name": "FDR Memorial", "address": "1850 West Basin Dr SW, Washington, DC", "desc": "Optional only if everyone still has energy. It is more walking than Jefferson and less ideal if closures are already active.", "must": ["Four outdoor rooms — one for each presidential term.", "Waterfalls and granite walls.", "Depression-era breadline sculpture.", "FDR with Fala and Eleanor Roosevelt sculptures.", "Engraved quotations throughout the memorial."], "interesting": ["It is more human-scale and tactile than the older presidential memorials.", "The quotes and statues are close to eye level, so it feels like walking through a story."], "tips": {"Arrival/drop-off": ["Only do this if Jefferson was easy and everyone still wants to walk.", "This is not the right stop if anyone is limping, overheated, or impatient."], "Parking": ["Do not move the car repeatedly around West Basin Drive after 10 PM unless GPS clearly shows access.", "Uber/drop-off is safer than circling for a space."], "Inside strategy": ["Walk only the first two rooms if energy is low.", "Use the water features and statues as quick checkpoints."], "Backup": ["Skip without guilt. Jefferson is the stronger late-night payoff.", "If the road pattern is confusing, leave the basin area before getting trapped in reroutes."]}}, "es": {"name": "Memorial de Franklin D. Roosevelt", "address": "1850 West Basin Dr SW, Washington, DC", "desc": "Opcional solo si todavía tienen energía. Requiere más caminata que Jefferson y no conviene si los cierres ya están activos.", "must": ["Cuatro salas exteriores — una por cada período presidencial.", "Cascadas y muros de granito.", "Escultura de fila de pan de la Gran Depresión.", "Esculturas de FDR con Fala y Eleanor Roosevelt.", "Citas grabadas por todo el memorial."], "interesting": ["Es más humano y táctil que memoriales presidenciales más antiguos.", "Las frases y estatuas están cerca del nivel de los ojos, así que se siente como caminar por una historia."], "tips": {"Llegada/bajada": ["Solo hacerlo si Jefferson fue fácil y todos todavía quieren caminar.", "No es buena parada si alguien cojea, tiene calor o ya está impaciente."], "Parking": ["No mover el carro varias veces por West Basin Drive después de las 10 PM salvo que el GPS muestre acceso claro.", "Uber/bajada es más seguro que dar vueltas buscando espacio."], "Estrategia adentro": ["Caminar solo las primeras dos salas si queda poca energía.", "Usar las fuentes y estatuas como puntos rápidos."], "Respaldo": ["Saltarlo sin problema. Jefferson da mejor recompensa visual por la noche.", "Si el patrón de calles está confuso, salir del basin antes de quedar atrapados en desvíos."]}}}];
+const parking = [{"lat": 38.8849, "lon": -77.0265, "gmaps": "https://www.google.com/maps/search/?api=1&query=L%27Enfant+Plaza+Parking+420+10th+St+SW+Washington+DC", "en": {"name": "L’Enfant Plaza / ACE Garage", "address": "420 10th St SW", "desc": "Best all-purpose garage for Air and Space, Spy Museum, and Wharf backup. Also the better accessible route for Spy because elevators reach Plaza level.", "tips": ["Use this as the default if you want fewer parking moves.", "Good fallback if The Wharf garages are full.", "Check prepaid/reserved availability before arriving."]}, "es": {"name": "Garage L’Enfant Plaza / ACE", "address": "420 10th St SW", "desc": "Mejor garage general para Air and Space, Spy Museum y respaldo para The Wharf. También es la mejor ruta accesible para Spy porque tiene elevadores al nivel Plaza.", "tips": ["Usarlo como opción base si quieren mover poco el carro.", "Buen respaldo si los garages de The Wharf están llenos.", "Revisar disponibilidad prepagada/reservada antes de llegar."]}}, {"lat": 38.8795, "lon": -77.0239, "gmaps": "https://www.google.com/maps/search/?api=1&query=Wharf+Garage+1+700+Water+St+SW+Washington+DC", "en": {"name": "Wharf Garage 1", "address": "700 Water St SW", "desc": "Best first try if parking directly at The Wharf. Official Wharf garages are 24 hours but cannot be reserved.", "tips": ["Use only if GPS shows clean access.", "If it is backed up, do not circle Maine Ave; go to L’Enfant Plaza.", "Best for dinner-only version of the night."]}, "es": {"name": "Wharf Garage 1", "address": "700 Water St SW", "desc": "Primera opción si van a estacionar directamente en The Wharf. Los garages oficiales abren 24 horas pero no se reservan.", "tips": ["Usarlo solo si el GPS muestra acceso limpio.", "Si está bloqueado o lleno, no dar vueltas por Maine Ave; ir a L’Enfant Plaza.", "Mejor para versión de solo cena por la noche."]}}, {"lat": 38.8992, "lon": -77.0222, "gmaps": "https://www.google.com/maps/search/?api=1&query=parking+near+8th+and+G+St+NW+Washington+DC", "en": {"name": "Gallery Place / Penn Quarter garage area", "address": "Near 8th & G St NW", "desc": "Best parking zone for American Art / Portrait Gallery. Use a paid garage, not street parking.", "tips": ["Drop grandparents first if possible.", "Do not leave valuables visible.", "If the first garage is full, move one or two blocks north/east, not toward the Mall."]}, "es": {"name": "Zona de garages Gallery Place / Penn Quarter", "address": "Cerca de 8th & G St NW", "desc": "Mejor zona de parking para American Art / Portrait Gallery. Usar garage pagado, no calle.", "tips": ["Bajar a los abuelos primero si es posible.", "No dejar objetos visibles.", "Si el primer garage está lleno, moverse una o dos cuadras al norte/este, no hacia el Mall."]}}, {"lat": 38.8797, "lon": -77.0269, "gmaps": "https://www.google.com/maps/search/?api=1&query=20+Blair+Alley+SW+Washington+DC", "en": {"name": "Wharf alternate garage entrances", "address": "20 Blair Alley SW / 19 Sutton Sq SW / 21 Riley St SW / 602 Water St SW", "desc": "Alternate official Wharf parking entrances. Use live GPS if 700 Water St is blocked.", "tips": ["Best used by the driver only; let passengers out before navigating alley entrances.", "Watch for pedestrians and valet traffic.", "Do not force this if closures are pushing traffic toward Maine Ave."]}, "es": {"name": "Entradas alternas de garage en The Wharf", "address": "20 Blair Alley SW / 19 Sutton Sq SW / 21 Riley St SW / 602 Water St SW", "desc": "Entradas oficiales alternas de parking en The Wharf. Usar GPS en vivo si 700 Water St está bloqueado.", "tips": ["Mejor que solo las maneje el conductor; bajar pasajeros antes de entrar a callejones.", "Cuidado con peatones y valet.", "No forzarlo si los cierres están empujando tráfico hacia Maine Ave."]}}];
+const closures = [{"coords": [[38.8899, -77.0435], [38.892, -77.034], [38.8913, -77.0204], [38.8893, -77.0095], [38.885, -77.0095], [38.8845, -77.02], [38.8848, -77.034], [38.8875, -77.0435]], "en": {"name": "Mall core closure / avoid-driving zone", "desc": "Avoid driving through the National Mall core. Closures/restrictions affect Constitution Ave, Independence Ave, 14th/15th St area, Jefferson/Madison drives, and nearby approaches."}, "es": {"name": "Zona central del Mall / evitar manejar", "desc": "Evitar manejar por el centro del National Mall. Los cierres/restricciones afectan Constitution Ave, Independence Ave, área de 14th/15th St, Jefferson/Madison drives y accesos cercanos."}}, {"coords": [[38.8856, -77.0535], [38.8892, -77.044], [38.8855, -77.0342], [38.879, -77.034], [38.8776, -77.043], [38.8803, -77.0525]], "en": {"name": "Tidal Basin / 10 PM risk zone", "desc": "After 10 PM, driving around Jefferson/FDR/Tidal Basin gets much riskier due to additional closures including Ohio Dr, West Basin Dr, Maine Ave approaches, and Lincoln Memorial Circle."}, "es": {"name": "Tidal Basin / zona de riesgo después de 10 PM", "desc": "Después de las 10 PM, manejar por Jefferson/FDR/Tidal Basin se complica mucho por cierres adicionales en Ohio Dr, West Basin Dr, accesos de Maine Ave y Lincoln Memorial Circle."}}];
+const labels = {"en": {"title": "DC July 3 Bilingual Itinerary Map + Stop Tips", "subtitle": "Timed route from Bethesda with exhibits, parking, stop-specific tips, closure warnings, and fallback options.", "drivingRule": "Driving rule for today", "drivingText": "Use live GPS and avoid driving through the National Mall core. Road closures around the Mall and Tidal Basin are active for July 4 setup. The monument add-on is only smart if you reach Jefferson before about 10 PM.", "legendMuseum": "Museum stop", "legendFood": "Food/waterfront", "legendMonument": "Monument", "legendClosure": "Closure risk zone", "full": "Full itinerary", "museums": "Museums", "wharf": "Wharf/Spy", "monuments": "Monuments", "mainItinerary": "Main itinerary", "parkingOptions": "Parking options", "cutoffs": "Cutoff rules", "sourceLinks": "Source links", "mustSee": "Main exhibits / points of interest", "interesting": "Interesting points", "tips": "Practical tips", "parkingTips": "Parking tips", "openMaps": "Open in Google Maps", "navigate": "Navigate", "parking": "Parking", "cutoffBullets": ["<b>No Air and Space pass:</b> skip it. Do American Art / Portrait Gallery → Spy Museum → Wharf → Jefferson.", "<b>Arrive at Air and Space after 3:30:</b> keep it to one hour max.", "<b>No Spy tickets:</b> do American Art until about 6:30, then Wharf dinner, then Jefferson if before 10.", "<b>After 10 PM:</b> skip FDR/Tidal Basin driving unless GPS clearly shows access.", "<b>Grandparents tired:</b> choose Kogod Courtyard + Wharf + Jefferson. Skip Spy or FDR.", "<b>Parking stress:</b> use L’Enfant Plaza as the anchor garage and take short Uber/walk segments."], "routeWarning": "The blue line shows the visit sequence only, not live driving directions.", "flexDisclaimerTitle": "Flexible-plan disclaimer", "flexDisclaimerText": "This itinerary may change at any time due to traffic, heat, road closures, museum capacity, family energy level, and the chauffeur/guide’s mood."}, "es": {"title": "Mapa bilingüe DC julio 3 + tips por parada", "subtitle": "Ruta con horarios desde Bethesda, exhibiciones, parking, tips por lugar, cierres y opciones de respaldo.", "drivingRule": "Regla para manejar hoy", "drivingText": "Usar GPS en vivo y evitar manejar por el centro del National Mall. Hay cierres por los preparativos del 4 de julio alrededor del Mall y Tidal Basin. El extra de monumentos solo conviene si llegan a Jefferson antes de más o menos las 10 PM.", "legendMuseum": "Museo", "legendFood": "Cena/frente al agua", "legendMonument": "Monumento", "legendClosure": "Zona con riesgo de cierres", "full": "Todo el itinerario", "museums": "Museos", "wharf": "Wharf/Spy", "monuments": "Monumentos", "mainItinerary": "Itinerario principal", "parkingOptions": "Opciones de parking", "cutoffs": "Reglas de corte", "sourceLinks": "Fuentes", "mustSee": "Exhibiciones principales / puntos de interés", "interesting": "Puntos interesantes", "tips": "Tips prácticos", "parkingTips": "Tips de parking", "openMaps": "Abrir en Google Maps", "navigate": "Navegar", "parking": "Parking", "cutoffBullets": ["<b>Sin pase para Air and Space:</b> saltarlo. Hacer American Art / Portrait Gallery → Spy Museum → Wharf → Jefferson.", "<b>Si llegan a Air and Space después de 3:30:</b> máximo una hora.", "<b>Sin boletos de Spy:</b> hacer American Art hasta más o menos 6:30, después cena en Wharf, y Jefferson si es antes de las 10.", "<b>Después de las 10 PM:</b> saltar FDR/Tidal Basin en carro salvo que el GPS muestre acceso claro.", "<b>Si los abuelos están cansados:</b> Kogod Courtyard + Wharf + Jefferson. Saltar Spy o FDR.", "<b>Estrés de parking:</b> usar L’Enfant Plaza como garage base y hacer tramos cortos en Uber/caminando."], "routeWarning": "La línea azul muestra solo la secuencia de visita, no rutas de manejo en vivo.", "flexDisclaimerTitle": "Aviso de plan flexible", "flexDisclaimerText": "Este itinerario puede cambiar en cualquier momento por tráfico, calor, cierres de calles, capacidad de museos, energía del grupo y el humor del chofer/guía."}};
+const sourceLinks = [["MPD Independence Day traffic advisory", "https://mpdc.dc.gov/release/traffic-advisory-salute-america-and-independence-day-events"], ["Air and Space museum visit / timed entry", "https://airandspace.si.edu/visit/museum-dc"], ["Air and Space visit tips", "https://airandspace.si.edu/visit/museum-dc/visiting-tips"], ["Air and Space entry guidelines", "https://airandspace.si.edu/visit/museum-dc/guidelines"], ["Smithsonian American Art Museum visit", "https://americanart.si.edu/visit/saam"], ["National Portrait Gallery America's Presidents", "https://npg.si.edu/exhibition/americas-presidents"], ["Spy Museum visit", "https://www.spymuseum.org/visit"], ["Spy Museum parking / directions", "https://www.spymuseum.org/visit/getting-here/parking-directions/"], ["Spy Museum accessible route", "https://www.spymuseum.org/visit/getting-here/lower-10th-street/"], ["The Wharf parking", "https://www.wharfdc.com/getting-here/car-parking/"], ["The Wharf shuttle", "https://www.wharfdc.com/getting-here/the-wharf-shuttle/"], ["The Wharf parks and piers", "https://www.wharfdc.com/things-to-do/parks-piers/"], ["Jefferson Memorial NPS", "https://www.nps.gov/thje/index.htm"], ["FDR Memorial NPS", "https://www.nps.gov/frde/index.htm"]];
+
+let lang = localStorage.getItem('dc-map-lang') || 'en';
+let mapMode = 'fallback';
+let leafletMap = null;
+let stopMarkers = [];
+let parkingMarkers = [];
+let closurePolys = [];
+let stopLayer = null;
+let parkingLayer = null;
+let closureLayer = null;
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+function listHtml(items) {
+  return '<ul>' + (items || []).map(x => `<li>${escapeHtml(x)}</li>`).join('') + '</ul>';
+}
+function tipsHtml(tips) {
+  return Object.keys(tips || {}).map(k => `<div class="tipGroup"><b>${escapeHtml(k)}</b>${listHtml(tips[k])}</div>`).join('');
+}
+function firstTipText(obj) {
+  const keys = Object.keys(obj || {});
+  if (!keys.length) return '';
+  const k = keys[0];
+  return `${k}: ${obj[k][0] || ''}`;
+}
+function colorFor(type) {
+  if (type === 'monument') return '#047857';
+  if (type === 'food') return '#b45309';
+  if (type === 'start') return '#475569';
+  return '#2563eb';
+}
+
+function renderCards() {
+  document.getElementById('cards').innerHTML = stops.map(s => {
+    const d = s[lang];
+    return `<div class="card ${s.type}">
+      <div class="cardTop"><span class="badge">${escapeHtml(s.num)}</span><div><b>${escapeHtml(s.time)}</b><br><span>${escapeHtml(d.name)}</span></div></div>
+      <p>${escapeHtml(d.desc)}</p><div class="addr">${escapeHtml(d.address)}</div>
+      <details open><summary>${labels[lang].tips}</summary>${tipsHtml(d.tips)}</details>
+      <details><summary>${labels[lang].mustSee}</summary>${listHtml(d.must)}</details>
+      <details><summary>${labels[lang].interesting}</summary>${listHtml(d.interesting)}</details>
+      <a class="btn" href="${s.gmaps}" target="_blank" rel="noopener">${labels[lang].openMaps}</a>
+    </div>`;
+  }).join('');
+
+  document.getElementById('parkingCards').innerHTML = parking.map(p => {
+    const d = p[lang];
+    return `<div class="parkingItem"><b>${escapeHtml(d.name)}</b><div class="addr">${escapeHtml(d.address)}</div>
+      <p>${escapeHtml(d.desc)}</p>
+      <details open><summary>${labels[lang].parkingTips}</summary>${listHtml(d.tips)}</details>
+      <a class="btn secondary" href="${p.gmaps}" target="_blank" rel="noopener">${labels[lang].navigate}</a></div>`;
+  }).join('');
+
+  document.getElementById('cutoffBullets').innerHTML = '<ul>' + labels[lang].cutoffBullets.map(x => `<li>${x}</li>`).join('') + '</ul>';
+  document.getElementById('sources').innerHTML = sourceLinks.map(([name, url]) => `<a href="${url}" target="_blank" rel="noopener">${escapeHtml(name)}</a>`).join('');
+}
+
+function setTextLabels() {
+  Object.keys(labels[lang]).forEach(k => {
+    const el = document.getElementById(k);
+    if (el && typeof labels[lang][k] === 'string') el.textContent = labels[lang][k];
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  document.documentElement.lang = lang;
+}
+
+function popupStop(s) {
+  const d = s[lang];
+  return `<div class="popupTitle">${escapeHtml(s.time)} — ${escapeHtml(d.name)}</div>
+    <div>${escapeHtml(d.desc)}</div>
+    <div class="small" style="margin-top:5px">${escapeHtml(firstTipText(d.tips))}</div>
+    <div class="small" style="margin-top:5px">${escapeHtml(d.address)}</div>
+    <a class="popupBtn" href="${s.gmaps}" target="_blank" rel="noopener">${labels[lang].openMaps}</a>`;
+}
+function popupParking(p) {
+  const d = p[lang];
+  return `<div class="popupTitle">${labels[lang].parking}: ${escapeHtml(d.name)}</div>
+    <div>${escapeHtml(d.desc)}</div>
+    <div class="small" style="margin-top:5px">${escapeHtml(d.address)}</div>
+    <a class="popupBtn" href="${p.gmaps}" target="_blank" rel="noopener">${labels[lang].navigate}</a>`;
+}
+
+function iconFor(type, num) {
+  const color = colorFor(type);
+  return L.divIcon({
+    className:'customIcon',
+    html:`<div style="background:${color};color:white;border:2px solid white;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font-weight:900;box-shadow:0 1px 6px rgba(0,0,0,.35);">${num}</div>`,
+    iconSize:[30,30], iconAnchor:[15,15]
+  });
+}
+
+function initLeafletMap() {
+  if (!window.L || leafletMap) return false;
+  mapMode = 'leaflet';
+  leafletMap = L.map('map').setView([38.895, -77.036], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; OpenStreetMap contributors'}).addTo(leafletMap);
+  stopLayer = L.layerGroup().addTo(leafletMap);
+  parkingLayer = L.layerGroup().addTo(leafletMap);
+  closureLayer = L.layerGroup().addTo(leafletMap);
+  stopMarkers = [];
+  parkingMarkers = [];
+  closurePolys = [];
+
+  const parkingIcon = L.divIcon({className:'parkingIcon', html:`<div style="background:#111827;color:white;border:2px solid white;border-radius:8px;width:28px;height:28px;display:grid;place-items:center;font-weight:900;box-shadow:0 1px 6px rgba(0,0,0,.35);">P</div>`, iconSize:[28,28], iconAnchor:[14,14]});
+  stops.forEach(s => {
+    const m = L.marker([s.lat, s.lon], {icon:iconFor(s.type, s.num)}).bindPopup(popupStop(s));
+    stopLayer.addLayer(m); stopMarkers.push([m, s]);
+  });
+  parking.forEach(p => {
+    const m = L.marker([p.lat, p.lon], {icon:parkingIcon}).bindPopup(popupParking(p));
+    parkingLayer.addLayer(m); parkingMarkers.push([m, p]);
+  });
+  L.polyline(stops.slice(0,6).map(s => [s.lat, s.lon]), {color:'#2563eb', weight:3, opacity:.55, dashArray:'7,7'}).addTo(leafletMap);
+  closures.forEach(c => {
+    const poly = L.polygon(c.coords, {color:'#dc2626', fillColor:'#dc2626', fillOpacity:.13, weight:2, dashArray:'5,5'})
+      .bindPopup(`<div class="popupTitle">${escapeHtml(c[lang].name)}</div><div>${escapeHtml(c[lang].desc)}</div>`);
+    closureLayer.addLayer(poly); closurePolys.push([poly, c]);
+  });
+  L.control.layers(null, {"Stops / Paradas":stopLayer, "Parking":parkingLayer, "Closure risk zones / Cierres":closureLayer}, {collapsed:false}).addTo(leafletMap);
+  zoomItinerary();
+  return true;
+}
+
+function renderFallbackMap(filterName = 'all') {
+  mapMode = 'fallback';
+  const mapEl = document.getElementById('map');
+  const allPoints = stops.concat(parking);
+  const minLat = Math.min(...allPoints.map(p => p.lat)) - 0.002;
+  const maxLat = Math.max(...allPoints.map(p => p.lat)) + 0.002;
+  const minLon = Math.min(...allPoints.map(p => p.lon)) - 0.004;
+  const maxLon = Math.max(...allPoints.map(p => p.lon)) + 0.004;
+  const project = (lat, lon) => {
+    const x = 6 + ((lon - minLon) / (maxLon - minLon)) * 88;
+    const y = 9 + ((maxLat - lat) / (maxLat - minLat)) * 82;
+    return [x, y];
+  };
+  const visibleStops = stops.filter(s => {
+    if (filterName === 'museums') return s.type === 'museum';
+    if (filterName === 'wharf') return s.type === 'food' || s.en.name.includes('Spy');
+    if (filterName === 'monuments') return s.type === 'monument';
+    return true;
+  });
+  const line = stops.slice(0,6).map(s => project(s.lat, s.lon).join(',')).join(' ');
+  const closureSvg = closures.map(c => {
+    const pts = c.coords.map(([lat,lon]) => project(lat,lon).join(',')).join(' ');
+    return `<polygon class="fallbackClosure" points="${pts}"><title>${escapeHtml(c[lang].name)}</title></polygon>`;
+  }).join('');
+  const stopBtns = visibleStops.map(s => {
+    const [x,y] = project(s.lat, s.lon);
+    return `<button class="fallbackMarker ${s.type}" style="left:${x}%;top:${y}%;background:${colorFor(s.type)};" onclick="showFallbackStop('${s.num}')" title="${escapeHtml(s[lang].name)}">${escapeHtml(s.num)}</button>`;
+  }).join('');
+  const parkingBtns = parking.map((p, i) => {
+    const [x,y] = project(p.lat, p.lon);
+    return `<button class="fallbackParking" style="left:${x}%;top:${y}%;" onclick="showFallbackParking(${i})" title="${escapeHtml(p[lang].name)}">P</button>`;
+  }).join('');
+
+  mapEl.innerHTML = `<div class="fallbackMap">
+    <div class="fallbackTitle"><b>${labels[lang].title}</b><div class="mapError">${labels[lang].routeWarning}</div></div>
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;">
+      ${closureSvg}
+      <polyline class="fallbackLine" points="${line}"></polyline>
+    </svg>
+    ${stopBtns}
+    ${parkingBtns}
+    <div id="fallbackPopup" class="fallbackPopup" style="display:none"></div>
+  </div>`;
+}
+
+function showFallbackStop(num) {
+  const s = stops.find(x => x.num === String(num));
+  if (!s) return;
+  const el = document.getElementById('fallbackPopup');
+  el.innerHTML = `<button class="closeBtn" onclick="hideFallbackPopup()">×</button>${popupStop(s)}`;
+  el.style.display = 'block';
+}
+function showFallbackParking(idx) {
+  const p = parking[idx];
+  if (!p) return;
+  const el = document.getElementById('fallbackPopup');
+  el.innerHTML = `<button class="closeBtn" onclick="hideFallbackPopup()">×</button>${popupParking(p)}`;
+  el.style.display = 'block';
+}
+function hideFallbackPopup() {
+  const el = document.getElementById('fallbackPopup');
+  if (el) el.style.display = 'none';
+}
+
+function refreshMapLanguage() {
+  if (mapMode === 'leaflet') {
+    stopMarkers.forEach(([m, s]) => m.setPopupContent(popupStop(s)));
+    parkingMarkers.forEach(([m, p]) => m.setPopupContent(popupParking(p)));
+    closurePolys.forEach(([poly, c]) => poly.setPopupContent(`<div class="popupTitle">${escapeHtml(c[lang].name)}</div><div>${escapeHtml(c[lang].desc)}</div>`));
+  } else {
+    renderFallbackMap();
+  }
+}
+
+function setLang(newLang) {
+  lang = newLang;
+  localStorage.setItem('dc-map-lang', lang);
+  setTextLabels();
+  renderCards();
+  refreshMapLanguage();
+}
+
+function leafletFit(points) {
+  if (!leafletMap) return;
+  leafletMap.fitBounds(L.latLngBounds(points.map(p => [p.lat, p.lon])), {padding:[35,35]});
+}
+function zoomItinerary() {
+  if (mapMode === 'leaflet') leafletFit(stops);
+  else renderFallbackMap('all');
+}
+function zoomMuseums() {
+  const pts = stops.filter(s => s.type === 'museum');
+  if (mapMode === 'leaflet') leafletFit(pts);
+  else renderFallbackMap('museums');
+}
+function zoomWharf() {
+  const pts = stops.filter(s => s.type === 'food' || s.en.name.includes('Spy')).concat(parking.filter(p => p.en.name.includes('Wharf') || p.en.name.includes('L’Enfant')));
+  if (mapMode === 'leaflet') leafletFit(pts);
+  else renderFallbackMap('wharf');
+}
+function zoomMonuments() {
+  const pts = stops.filter(s => s.type === 'monument');
+  if (mapMode === 'leaflet') leafletFit(pts);
+  else renderFallbackMap('monuments');
+}
+
+function boot() {
+  setTextLabels();
+  renderCards();
+  if (!initLeafletMap()) {
+    renderFallbackMap('all');
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+</script>
+</body>
+</html>
