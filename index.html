@@ -47,6 +47,40 @@
   .tipGroup b { display:block; font-size:12.5px; margin-bottom:3px; color:#0f172a; }
   .sourceLinks a { display:block; margin:6px 0; font-size:12px; color:#1d4ed8; }
 
+  .tabs { display:flex; gap:6px; padding:8px 14px 0; background:var(--bg); }
+  .tabs button {
+    border:1px solid rgba(255,255,255,.3); border-bottom:none; background:#1e293b; color:#cbd5e1;
+    padding:9px 16px; font-weight:800; border-radius:10px 10px 0 0; font-size:13px; cursor:pointer;
+  }
+  .tabs button.active { background:#f8fafc; color:#0f172a; }
+  .guideWrap { max-width:980px; margin:0 auto; padding:16px 14px 40px; }
+  .prefsPanel { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; box-shadow:var(--shadow); margin-bottom:14px; }
+  .chipRow { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .chip {
+    border:1px solid var(--line); background:#f8fafc; color:#334155; border-radius:999px;
+    padding:7px 12px; font-weight:800; font-size:12.5px; cursor:pointer;
+  }
+  .chip.active { background:var(--accent); border-color:var(--accent); color:white; }
+  .paceRow .chip.active { background:#0f172a; border-color:#0f172a; }
+  .guideMuseum { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; box-shadow:var(--shadow); margin-bottom:16px; }
+  .guideMuseum h3 { margin:0 0 4px; font-size:16px; color:#0f172a; }
+  .guideMeta { font-size:12px; color:var(--muted); }
+  .planBar {
+    display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;
+    background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:8px 10px;
+    margin:10px 0 8px; font-size:12.5px; font-weight:800; color:#1e3a8a;
+  }
+  .exCard { border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin:8px 0; background:#fff; }
+  .exCard.picked { border-color:var(--accent); background:#eff6ff; }
+  .exTop { display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
+  .exTop input { margin-top:3px; width:17px; height:17px; flex:0 0 auto; }
+  .exName { font-weight:900; font-size:13.5px; color:#0f172a; }
+  .exMeta { font-size:11.5px; font-weight:400; color:var(--muted); white-space:nowrap; }
+  .exTags { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+  .exTag { font-size:10.5px; font-weight:800; background:#f1f5f9; border:1px solid #e2e8f0; color:#475569; border-radius:999px; padding:2px 8px; }
+  .exTag.hit { background:#dbeafe; border-color:#93c5fd; color:#1d4ed8; }
+  .noMatch { font-size:13px; color:var(--muted); padding:8px 2px; }
+
   .fallbackMap {
     position:absolute; inset:0; background:
       radial-gradient(circle at 70% 70%, rgba(59,130,246,.16), transparent 28%),
@@ -87,7 +121,11 @@
   <div><h1 id="title"></h1><p id="subtitle"></p></div>
   <div class="langBtns"><button id="btn-en" onclick="setLang('en')">English</button><button id="btn-es" onclick="setLang('es')">Español</button></div>
 </header>
-<div class="layout">
+<nav class="tabs">
+  <button id="tabMap" class="active" onclick="setTab('map')"></button>
+  <button id="tabGuide" onclick="setTab('guide')"></button>
+</nav>
+<div class="layout" id="view-map">
   <aside>
     <div class="notice">
       <b id="drivingRule"></b><p id="drivingText"></p><p class="small" id="routeWarning"></p>
@@ -115,6 +153,7 @@
   </aside>
   <main id="map"></main>
 </div>
+<div id="view-guide" class="guideWrap" style="display:none"></div>
 
 <script src="vendor/leaflet/leaflet.js"></script>
 <script>
@@ -336,6 +375,7 @@ function setLang(newLang) {
   setTextLabels();
   renderCards();
   refreshMapLanguage();
+  renderGuide();
 }
 
 function leafletFit(points) {
@@ -360,6 +400,249 @@ function zoomMonuments() {
   const pts = stops.filter(s => s.type === 'monument');
   if (mapMode === 'leaflet') leafletFit(pts);
   else renderFallbackMap('monuments');
+}
+
+/* ---------- Museum guide tab ---------- */
+const guideLabels = {
+  "en": {
+    "tabMap": "Map + itinerary",
+    "tabGuide": "Museum guide",
+    "guideTitle": "Build-your-own museum guide",
+    "guideIntro": "Pick the themes your group cares about and a visit style. Each museum below filters down to the exhibits that fit, and you can tick items to build your own route with a running time estimate.",
+    "guideThemesLabel": "Interests / themes",
+    "guidePaceLabel": "Visit style",
+    "paceQuick": "Quick highlights",
+    "paceFull": "Full visit",
+    "clearFilters": "Clear filters",
+    "showingA": "Showing",
+    "showingB": "of",
+    "showingC": "exhibits",
+    "planPicked": "picked",
+    "planMinutes": "min planned",
+    "planHint": "Tick the boxes to build your own route.",
+    "noMatch": "Nothing here matches these filters — clear a theme or switch to Full visit."
+  },
+  "es": {
+    "tabMap": "Mapa + itinerario",
+    "tabGuide": "Guía de museos",
+    "guideTitle": "Guía de museos personalizada",
+    "guideIntro": "Elijan los temas que le interesan al grupo y un estilo de visita. Cada museo se filtra a las exhibiciones que encajan, y pueden marcar casillas para armar su propia ruta con tiempo estimado.",
+    "guideThemesLabel": "Intereses / temas",
+    "guidePaceLabel": "Estilo de visita",
+    "paceQuick": "Solo lo esencial",
+    "paceFull": "Visita completa",
+    "clearFilters": "Quitar filtros",
+    "showingA": "Mostrando",
+    "showingB": "de",
+    "showingC": "exhibiciones",
+    "planPicked": "marcadas",
+    "planMinutes": "min planeados",
+    "planHint": "Marquen las casillas para armar su propia ruta.",
+    "noMatch": "Nada coincide con estos filtros aquí — quiten un tema o cambien a Visita completa."
+  }
+};
+Object.keys(guideLabels).forEach(l => Object.assign(labels[l], guideLabels[l]));
+
+const guideThemes = [
+  {"id": "space", "en": "Space", "es": "Espacio"},
+  {"id": "aviation", "en": "Aviation", "es": "Aviación"},
+  {"id": "art", "en": "Art", "es": "Arte"},
+  {"id": "history", "en": "History", "es": "Historia"},
+  {"id": "presidents", "en": "Presidents", "es": "Presidentes"},
+  {"id": "spy", "en": "Spy & intrigue", "es": "Espionaje"},
+  {"id": "handson", "en": "Hands-on / teens", "es": "Interactivo / adolescentes"},
+  {"id": "easy", "en": "Easy walking / seating", "es": "Poco caminar / asientos"},
+  {"id": "photo", "en": "Photo spots", "es": "Fotos"}
+];
+
+const guideMuseums = [
+  {"id": "nasm", "stopNum": "1",
+   "en": {"name": "National Air and Space Museum", "note": "Timed-entry passes required and it closes earliest, so this is the precision stop. Quick highlights ≈ 60 min, which fits the 2:45–4:10 window."},
+   "es": {"name": "Museo Nacional del Aire y el Espacio", "note": "Requiere pases con horario y cierra más temprano, así que es la parada de precisión. Lo esencial ≈ 60 min, que cabe en la ventana de 2:45–4:10."},
+   "exhibits": [
+    {"min": 10, "pri": 1, "themes": ["aviation", "history", "photo"],
+     "en": {"name": "1903 Wright Flyer", "loc": "Wright Brothers gallery", "desc": "The original first airplane to make a controlled, powered flight.", "tip": "Shoot the photo from the side so the whole wingspan fits."},
+     "es": {"name": "Wright Flyer de 1903", "loc": "Galería de los hermanos Wright", "desc": "El avión original que logró el primer vuelo controlado con motor.", "tip": "La mejor foto es de lado, para que quepa toda el ala."}},
+    {"min": 10, "pri": 1, "themes": ["space", "history", "photo"],
+     "en": {"name": "Apollo 11 Command Module Columbia", "loc": "Destination Moon gallery", "desc": "The capsule that carried Armstrong, Aldrin, and Collins back from the Moon in 1969.", "tip": "Have the teens guess how three adults fit inside before they look in."},
+     "es": {"name": "Módulo de mando Columbia del Apollo 11", "loc": "Galería Destination Moon", "desc": "La cápsula que trajo a Armstrong, Aldrin y Collins de regreso de la Luna en 1969.", "tip": "Que los muchachos adivinen cómo cabían tres adultos adentro antes de asomarse."}},
+    {"min": 15, "pri": 1, "themes": ["aviation", "space", "easy"],
+     "en": {"name": "Boeing Milestones of Flight Hall", "loc": "Main entrance hall", "desc": "The icon room — famous aircraft and spacecraft together in one big hall, with seating nearby.", "tip": "Best single room if the grandparents want maximum payoff for minimum walking."},
+     "es": {"name": "Sala Boeing Milestones of Flight", "loc": "Sala principal de entrada", "desc": "La sala de los íconos: aviones y naves famosas en un solo espacio, con asientos cerca.", "tip": "La mejor sala única si los abuelos quieren ver mucho caminando poco."}},
+    {"min": 25, "pri": 1, "themes": ["handson"],
+     "en": {"name": "How Things Fly (TEXTRON)", "loc": "Hands-on gallery", "desc": "Push, pull, and test the physics of flight yourself at dozens of stations.", "tip": "Let the teens run this one; adults can sit at the edge."},
+     "es": {"name": "How Things Fly (TEXTRON)", "loc": "Galería interactiva", "desc": "Empujar, jalar y probar la física del vuelo en decenas de estaciones.", "tip": "Que los adolescentes manden aquí; los adultos pueden sentarse a un lado."}},
+    {"min": 20, "pri": 2, "themes": ["space", "history"],
+     "en": {"name": "Destination Moon", "loc": "Full gallery", "desc": "The whole Apollo story, from the Sputnik scare to the lunar landings.", "tip": "Skippable on the quick plan — Columbia alone gives you the highlight."},
+     "es": {"name": "Destination Moon", "loc": "Galería completa", "desc": "La historia completa de Apollo, del susto del Sputnik a los alunizajes.", "tip": "Se puede saltar en el plan rápido: con Columbia ya vieron lo principal."}},
+    {"min": 20, "pri": 2, "themes": ["space", "handson"],
+     "en": {"name": "Kenneth C. Griffin Exploring the Planets", "loc": "Planetary gallery", "desc": "The solar system gallery, with interactive stations and planetary landscapes."},
+     "es": {"name": "Kenneth C. Griffin Exploring the Planets", "loc": "Galería planetaria", "desc": "La galería del sistema solar, con estaciones interactivas y paisajes planetarios."}},
+    {"min": 15, "pri": 2, "themes": ["aviation", "easy"],
+     "en": {"name": "America by Air", "loc": "Commercial aviation gallery", "desc": "How airline travel went from mail planes to jumbo jets, with full-size aircraft overhead."},
+     "es": {"name": "America by Air", "loc": "Galería de aviación comercial", "desc": "Cómo pasó la aviación comercial de aviones de correo a jets gigantes, con aviones de tamaño real arriba."}},
+    {"min": 15, "pri": 2, "themes": ["aviation", "history"],
+     "en": {"name": "Early Flight", "loc": "Early aviation gallery", "desc": "The wild first decade of flying machines after the Wright brothers."},
+     "es": {"name": "Early Flight", "loc": "Galería de aviación temprana", "desc": "La primera década loca de las máquinas voladoras después de los hermanos Wright."}}
+   ]},
+  {"id": "saam", "stopNum": "2",
+   "en": {"name": "American Art Museum + Portrait Gallery", "note": "Free, no passes, open later than most Smithsonians — the flexible stop and the best air-conditioned break. Two museums share one historic building."},
+   "es": {"name": "Museo de Arte Americano + Galería de Retratos", "note": "Gratis, sin pases y abierto más tarde que la mayoría de los Smithsonian: la parada flexible y la mejor pausa con aire. Dos museos comparten un edificio histórico."},
+   "exhibits": [
+    {"min": 15, "pri": 1, "themes": ["easy", "photo"],
+     "en": {"name": "Kogod Courtyard", "loc": "Center of the building", "desc": "Glass-canopied indoor courtyard with seating and a café — the best air-conditioned break in DC.", "tip": "Start here, cool down, then split up."},
+     "es": {"name": "Kogod Courtyard", "loc": "Centro del edificio", "desc": "Patio techado de cristal con asientos y café: la mejor pausa con aire acondicionado de DC.", "tip": "Empiecen aquí, refrésquense y luego divídanse."}},
+    {"min": 25, "pri": 1, "themes": ["presidents", "history"],
+     "en": {"name": "America’s Presidents", "loc": "Portrait Gallery side", "desc": "The only complete set of presidential portraits outside the White House.", "tip": "Everyone picks three presidents to find — faster and more fun than reading everything."},
+     "es": {"name": "America’s Presidents", "loc": "Lado de la Galería de Retratos", "desc": "La única colección completa de retratos presidenciales fuera de la Casa Blanca.", "tip": "Que cada quien escoja tres presidentes para encontrar: más rápido y más divertido que leer todo."}},
+    {"min": 10, "pri": 1, "themes": ["presidents", "art", "photo"],
+     "en": {"name": "The Obama portraits", "loc": "With America’s Presidents", "desc": "Kehinde Wiley’s Barack Obama and Amy Sherald’s Michelle Obama — the most-photographed works in the building."},
+     "es": {"name": "Los retratos de los Obama", "loc": "Junto a America’s Presidents", "desc": "El Barack Obama de Kehinde Wiley y la Michelle Obama de Amy Sherald: las obras más fotografiadas del edificio."}},
+    {"min": 10, "pri": 2, "themes": ["art", "photo"],
+     "en": {"name": "Electronic Superhighway (Nam June Paik)", "loc": "American Art side", "desc": "A neon map of the U.S. built from hundreds of TV screens — usually the teens’ favorite artwork here.", "tip": "If it’s off view, the modern wing still has plenty that lands with teens."},
+     "es": {"name": "Electronic Superhighway (Nam June Paik)", "loc": "Lado de arte americano", "desc": "Un mapa neón de EE.UU. hecho con cientos de pantallas: normalmente la obra favorita de los adolescentes.", "tip": "Si no está en exhibición, el ala moderna tiene mucho más que les gusta a los adolescentes."}},
+    {"min": 20, "pri": 2, "themes": ["art"],
+     "en": {"name": "Modern & contemporary wing", "loc": "American Art side", "desc": "American art from the last century — big, colorful rooms that move fast."},
+     "es": {"name": "Ala moderna y contemporánea", "loc": "Lado de arte americano", "desc": "Arte americano del último siglo: salas grandes y coloridas que se recorren rápido."}},
+    {"min": 15, "pri": 2, "themes": ["art", "history"],
+     "en": {"name": "Throne of the Third Heaven (folk art)", "loc": "Folk and self-taught art", "desc": "A glittering foil throne a DC janitor built in secret over 14 years — one of the most surprising objects in the city."},
+     "es": {"name": "Throne of the Third Heaven (arte popular)", "loc": "Arte popular y autodidacta", "desc": "Un trono brillante de papel aluminio que un conserje de DC construyó en secreto durante 14 años: uno de los objetos más sorprendentes de la ciudad."}},
+    {"min": 15, "pri": 2, "themes": ["art", "easy"],
+     "en": {"name": "Luce Foundation Center", "loc": "Open-storage mezzanine", "desc": "Thousands of artworks in glass cases you browse at your own pace, with seating throughout."},
+     "es": {"name": "Luce Foundation Center", "loc": "Mezzanine de almacenamiento abierto", "desc": "Miles de obras en vitrinas para ver a su propio ritmo, con asientos por todos lados."}},
+    {"min": 10, "pri": 2, "themes": ["photo", "history"],
+     "en": {"name": "Great Hall", "loc": "Top floor", "desc": "The ornate top-floor hall from the building’s days as the U.S. Patent Office."},
+     "es": {"name": "Great Hall", "loc": "Último piso", "desc": "La sala ornamentada del último piso, de la época en que el edificio era la Oficina de Patentes."}}
+   ]},
+  {"id": "spy", "stopNum": "3",
+   "en": {"name": "International Spy Museum", "note": "Paid timed tickets; the most interactive stop of the day — built for the teens. Do the cover-identity setup first and the whole visit gets better."},
+   "es": {"name": "Museo Internacional del Espionaje", "note": "Boletos pagados con horario; la parada más interactiva del día, hecha para los adolescentes. Hagan primero la identidad secreta y toda la visita mejora."},
+   "exhibits": [
+    {"min": 10, "pri": 1, "themes": ["spy", "handson"],
+     "en": {"name": "Undercover Mission setup", "loc": "Briefing Center, at the start", "desc": "Everyone adopts a cover identity and completes missions at stations through the whole museum.", "tip": "Don’t rush the setup — the rest of the visit is better when everyone has a cover."},
+     "es": {"name": "Inicio de la Undercover Mission", "loc": "Briefing Center, al inicio", "desc": "Cada quien adopta una identidad secreta y completa misiones en estaciones por todo el museo.", "tip": "No apuren el inicio: la visita mejora cuando todos tienen su identidad."}},
+    {"min": 20, "pri": 1, "themes": ["spy", "handson"],
+     "en": {"name": "Interactive skill stations", "loc": "Throughout the museum", "desc": "Memory, observation, and risk challenges scored against your cover identity."},
+     "es": {"name": "Estaciones interactivas", "loc": "Por todo el museo", "desc": "Retos de memoria, observación y riesgo que suman puntos a tu identidad secreta."}},
+    {"min": 15, "pri": 1, "themes": ["spy", "history"],
+     "en": {"name": "Spy gadgets & concealments", "loc": "Tradecraft galleries", "desc": "Real tradecraft: hidden cameras, disguises, and concealment devices used by actual intelligence services."},
+     "es": {"name": "Gadgets y escondites de espías", "loc": "Galerías de tradecraft", "desc": "Espionaje real: cámaras ocultas, disfraces y dispositivos de ocultamiento usados por servicios de inteligencia."}},
+    {"min": 15, "pri": 2, "themes": ["spy", "history"],
+     "en": {"name": "Codebreaking & cipher machines", "loc": "History galleries", "desc": "How codes get made and broken, including WWII-era cipher machines."},
+     "es": {"name": "Códigos y máquinas de cifrado", "loc": "Galerías de historia", "desc": "Cómo se hacen y se rompen los códigos, incluyendo máquinas de cifrado de la Segunda Guerra."}},
+    {"min": 15, "pri": 2, "themes": ["history", "spy"],
+     "en": {"name": "Cold War Berlin", "loc": "History galleries", "desc": "The spy capital of the world — tunnels, checkpoints, and double agents."},
+     "es": {"name": "Berlín en la Guerra Fría", "loc": "Galerías de historia", "desc": "La capital mundial del espionaje: túneles, puntos de control y agentes dobles."}},
+    {"min": 10, "pri": 1, "themes": ["spy", "handson"],
+     "en": {"name": "Debriefing Center", "loc": "At the end", "desc": "See how your mission performance scored across the visit.", "tip": "Don’t skip it — it’s the payoff of the cover identity."},
+     "es": {"name": "Debriefing Center", "loc": "Al final", "desc": "Revisen cómo les fue en la misión durante toda la visita.", "tip": "No se lo salten: es la recompensa de la identidad secreta."}}
+   ]}
+];
+
+let currentTab = 'map';
+
+function loadGuideState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('dc-guide-state') || 'null');
+    if (s) return {themes: new Set(s.themes || []), pace: s.pace === 'quick' ? 'quick' : 'full', picks: new Set(s.picks || [])};
+  } catch (e) {}
+  return {themes: new Set(), pace: 'full', picks: new Set()};
+}
+const guideState = loadGuideState();
+function saveGuideState() {
+  try {
+    localStorage.setItem('dc-guide-state', JSON.stringify({themes: [...guideState.themes], pace: guideState.pace, picks: [...guideState.picks]}));
+  } catch (e) {}
+}
+function toggleTheme(id) {
+  guideState.themes.has(id) ? guideState.themes.delete(id) : guideState.themes.add(id);
+  saveGuideState(); renderGuide();
+}
+function clearGuideFilters() {
+  guideState.themes.clear();
+  saveGuideState(); renderGuide();
+}
+function setPace(p) {
+  guideState.pace = p;
+  saveGuideState(); renderGuide();
+}
+function togglePick(id) {
+  guideState.picks.has(id) ? guideState.picks.delete(id) : guideState.picks.add(id);
+  saveGuideState(); renderGuide();
+}
+function exhibitMatches(ex) {
+  if (guideState.pace === 'quick' && ex.pri > 1) return false;
+  if (!guideState.themes.size) return true;
+  return ex.themes.some(t => guideState.themes.has(t));
+}
+
+function renderGuide() {
+  const el = document.getElementById('view-guide');
+  if (!el) return;
+  const t9 = labels[lang];
+  const chips = guideThemes.map(t =>
+    `<button class="chip ${guideState.themes.has(t.id) ? 'active' : ''}" onclick="toggleTheme('${t.id}')">${escapeHtml(t[lang])}</button>`
+  ).join('') + (guideState.themes.size ? `<button class="chip" style="border-style:dashed" onclick="clearGuideFilters()">✕ ${escapeHtml(t9.clearFilters)}</button>` : '');
+  const paceChips = ['quick', 'full'].map(p =>
+    `<button class="chip ${guideState.pace === p ? 'active' : ''}" onclick="setPace('${p}')">${escapeHtml(p === 'quick' ? t9.paceQuick : t9.paceFull)}</button>`
+  ).join('');
+
+  const museums = guideMuseums.map(m => {
+    const stop = stops.find(s => s.num === m.stopNum);
+    const matched = m.exhibits.filter(exhibitMatches);
+    const picked = m.exhibits.filter((ex, i) => guideState.picks.has(m.id + '-' + i));
+    const pickedMin = picked.reduce((a, ex) => a + ex.min, 0);
+    const cards = matched.length ? matched.map(ex => {
+      const i = m.exhibits.indexOf(ex);
+      const id = m.id + '-' + i;
+      const isPicked = guideState.picks.has(id);
+      const d = ex[lang];
+      const tags = ex.themes.map(tid => {
+        const th = guideThemes.find(x => x.id === tid);
+        return `<span class="exTag ${guideState.themes.has(tid) ? 'hit' : ''}">${escapeHtml(th ? th[lang] : tid)}</span>`;
+      }).join('');
+      return `<div class="exCard ${isPicked ? 'picked' : ''}">
+        <label class="exTop"><input type="checkbox" ${isPicked ? 'checked' : ''} onchange="togglePick('${id}')">
+          <div>
+            <div class="exName">${escapeHtml(d.name)} <span class="exMeta">· ~${ex.min} min · ${escapeHtml(d.loc)}</span></div>
+            <p style="margin:4px 0 0">${escapeHtml(d.desc)}</p>
+            ${d.tip ? `<p class="small" style="margin:5px 0 0">💡 ${escapeHtml(d.tip)}</p>` : ''}
+            <div class="exTags">${tags}</div>
+          </div>
+        </label>
+      </div>`;
+    }).join('') : `<div class="noMatch">${escapeHtml(t9.noMatch)}</div>`;
+    return `<div class="guideMuseum">
+      <h3>${escapeHtml(m[lang].name)}</h3>
+      <div class="guideMeta">${stop ? escapeHtml(stop.time) + ' · ' + escapeHtml(stop[lang].address) : ''}</div>
+      <p style="margin:6px 0 0">${escapeHtml(m[lang].note)}</p>
+      <div class="planBar">
+        <span>✔ ${picked.length} ${escapeHtml(t9.planPicked)} · ${pickedMin} ${escapeHtml(t9.planMinutes)}</span>
+        <span>${escapeHtml(t9.showingA)} ${matched.length} ${escapeHtml(t9.showingB)} ${m.exhibits.length} ${escapeHtml(t9.showingC)}</span>
+      </div>
+      ${picked.length ? '' : `<p class="small" style="margin:0 0 4px">${escapeHtml(t9.planHint)}</p>`}
+      ${cards}
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="prefsPanel">
+    <h2 style="margin:0 0 6px;font-size:17px;">${escapeHtml(t9.guideTitle)}</h2>
+    <p style="margin:0 0 8px">${escapeHtml(t9.guideIntro)}</p>
+    <b class="small">${escapeHtml(t9.guideThemesLabel)}</b>
+    <div class="chipRow">${chips}</div>
+    <b class="small" style="display:block;margin-top:12px">${escapeHtml(t9.guidePaceLabel)}</b>
+    <div class="chipRow paceRow">${paceChips}</div>
+  </div>${museums}`;
+}
+
+function setTab(tab) {
+  currentTab = tab;
+  document.getElementById('view-map').style.display = tab === 'map' ? '' : 'none';
+  document.getElementById('view-guide').style.display = tab === 'guide' ? '' : 'none';
+  document.getElementById('tabMap').classList.toggle('active', tab === 'map');
+  document.getElementById('tabGuide').classList.toggle('active', tab === 'guide');
+  if (tab === 'guide') renderGuide();
+  if (tab === 'map' && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 60);
 }
 
 function boot() {
