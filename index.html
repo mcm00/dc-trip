@@ -80,6 +80,15 @@
   .exTag { font-size:10.5px; font-weight:800; background:#f1f5f9; border:1px solid #e2e8f0; color:#475569; border-radius:999px; padding:2px 8px; }
   .exTag.hit { background:#dbeafe; border-color:#93c5fd; color:#1d4ed8; }
   .noMatch { font-size:13px; color:var(--muted); padding:8px 2px; }
+  .exNum {
+    display:inline-grid; place-items:center; width:19px; height:19px; border-radius:50%;
+    background:var(--accent); color:white; font-size:11px; font-weight:900; margin-right:4px; vertical-align:-4px;
+  }
+  .exCard.picked .exNum { background:var(--green); }
+  .exCard.flash { outline:3px solid var(--accent); outline-offset:1px; }
+  .museumMap { display:block; width:100%; height:auto; background:white; border:1px solid var(--line); border-radius:12px; margin:10px 0 4px; }
+  .mapNote { font-size:11.5px; color:var(--muted); margin:2px 0 10px; }
+  .knowList b { display:block; font-size:12px; color:#0f172a; margin-top:7px; }
 
   .fallbackMap {
     position:absolute; inset:0; background:
@@ -420,7 +429,12 @@ const guideLabels = {
     "planPicked": "picked",
     "planMinutes": "min planned",
     "planHint": "Tick the boxes to build your own route.",
-    "noMatch": "Nothing here matches these filters — clear a theme or switch to Full visit."
+    "noMatch": "Nothing here matches these filters — clear a theme or switch to Full visit.",
+    "museumPick": "Choose a museum",
+    "mapTitle": "Walking map",
+    "mapNote": "Schematic route, not to scale — numbers follow the suggested walking order and the dashed line connects the stops that match your filters. Free paper floor plans are at each museum’s entrance.",
+    "knowLabel": "What to know at this stop",
+    "entrance": "Entrance"
   },
   "es": {
     "tabMap": "Mapa + itinerario",
@@ -438,7 +452,12 @@ const guideLabels = {
     "planPicked": "marcadas",
     "planMinutes": "min planeados",
     "planHint": "Marquen las casillas para armar su propia ruta.",
-    "noMatch": "Nada coincide con estos filtros aquí — quiten un tema o cambien a Visita completa."
+    "noMatch": "Nada coincide con estos filtros aquí — quiten un tema o cambien a Visita completa.",
+    "museumPick": "Elijan un museo",
+    "mapTitle": "Mapa de recorrido",
+    "mapNote": "Ruta esquemática, no a escala: los números siguen el orden de caminata sugerido y la línea punteada conecta las paradas que coinciden con sus filtros. Hay planos de papel gratis en la entrada de cada museo.",
+    "knowLabel": "Qué saber en esta parada",
+    "entrance": "Entrada"
   }
 };
 Object.keys(guideLabels).forEach(l => Object.assign(labels[l], guideLabels[l]));
@@ -456,86 +475,166 @@ const guideThemes = [
 ];
 
 const guideMuseums = [
-  {"id": "nasm", "stopNum": "1",
-   "en": {"name": "National Air and Space Museum", "note": "Timed-entry passes required and it closes earliest, so this is the precision stop. Quick highlights ≈ 60 min, which fits the 2:45–4:10 window."},
-   "es": {"name": "Museo Nacional del Aire y el Espacio", "note": "Requiere pases con horario y cierra más temprano, así que es la parada de precisión. Lo esencial ≈ 60 min, que cabe en la ventana de 2:45–4:10."},
+  {"id": "nasm", "stopNum": "1", "entrance": {"x": 50, "y": 56}, "dividers": [],
+   "annotations": [{"x": 22, "y": 11, "en": "West wing", "es": "Ala oeste"}, {"x": 78, "y": 11, "en": "East wing", "es": "Ala este"}, {"x": 50, "y": 30, "en": "Central hall", "es": "Sala central"}],
+   "en": {"name": "National Air and Space Museum", "note": "Timed-entry passes required and it closes earliest — the precision stop. Five brand-new galleries opened July 1, 2026 (two days before this visit), so expect crowds on the east side. The quick-highlights route is ~75 min, which fits the 2:45–4:10 window."},
+   "es": {"name": "Museo Nacional del Aire y el Espacio", "note": "Requiere pases con horario y cierra más temprano: la parada de precisión. Cinco galerías nuevas abrieron el 1 de julio de 2026 (dos días antes de esta visita), así que el lado este estará lleno. La ruta esencial es ~75 min y cabe en la ventana de 2:45–4:10."},
    "exhibits": [
-    {"min": 10, "pri": 1, "themes": ["aviation", "history", "photo"],
-     "en": {"name": "1903 Wright Flyer", "loc": "Wright Brothers gallery", "desc": "The original first airplane to make a controlled, powered flight.", "tip": "Shoot the photo from the side so the whole wingspan fits."},
-     "es": {"name": "Wright Flyer de 1903", "loc": "Galería de los hermanos Wright", "desc": "El avión original que logró el primer vuelo controlado con motor.", "tip": "La mejor foto es de lado, para que quepa toda el ala."}},
-    {"min": 10, "pri": 1, "themes": ["space", "history", "photo"],
-     "en": {"name": "Apollo 11 Command Module Columbia", "loc": "Destination Moon gallery", "desc": "The capsule that carried Armstrong, Aldrin, and Collins back from the Moon in 1969.", "tip": "Have the teens guess how three adults fit inside before they look in."},
-     "es": {"name": "Módulo de mando Columbia del Apollo 11", "loc": "Galería Destination Moon", "desc": "La cápsula que trajo a Armstrong, Aldrin y Collins de regreso de la Luna en 1969.", "tip": "Que los muchachos adivinen cómo cabían tres adultos adentro antes de asomarse."}},
-    {"min": 15, "pri": 1, "themes": ["aviation", "space", "easy"],
-     "en": {"name": "Boeing Milestones of Flight Hall", "loc": "Main entrance hall", "desc": "The icon room — famous aircraft and spacecraft together in one big hall, with seating nearby.", "tip": "Best single room if the grandparents want maximum payoff for minimum walking."},
-     "es": {"name": "Sala Boeing Milestones of Flight", "loc": "Sala principal de entrada", "desc": "La sala de los íconos: aviones y naves famosas en un solo espacio, con asientos cerca.", "tip": "La mejor sala única si los abuelos quieren ver mucho caminando poco."}},
-    {"min": 25, "pri": 1, "themes": ["handson"],
-     "en": {"name": "How Things Fly (TEXTRON)", "loc": "Hands-on gallery", "desc": "Push, pull, and test the physics of flight yourself at dozens of stations.", "tip": "Let the teens run this one; adults can sit at the edge."},
-     "es": {"name": "How Things Fly (TEXTRON)", "loc": "Galería interactiva", "desc": "Empujar, jalar y probar la física del vuelo en decenas de estaciones.", "tip": "Que los adolescentes manden aquí; los adultos pueden sentarse a un lado."}},
-    {"min": 20, "pri": 2, "themes": ["space", "history"],
-     "en": {"name": "Destination Moon", "loc": "Full gallery", "desc": "The whole Apollo story, from the Sputnik scare to the lunar landings.", "tip": "Skippable on the quick plan — Columbia alone gives you the highlight."},
-     "es": {"name": "Destination Moon", "loc": "Galería completa", "desc": "La historia completa de Apollo, del susto del Sputnik a los alunizajes.", "tip": "Se puede saltar en el plan rápido: con Columbia ya vieron lo principal."}},
-    {"min": 20, "pri": 2, "themes": ["space", "handson"],
-     "en": {"name": "Kenneth C. Griffin Exploring the Planets", "loc": "Planetary gallery", "desc": "The solar system gallery, with interactive stations and planetary landscapes."},
-     "es": {"name": "Kenneth C. Griffin Exploring the Planets", "loc": "Galería planetaria", "desc": "La galería del sistema solar, con estaciones interactivas y paisajes planetarios."}},
-    {"min": 15, "pri": 2, "themes": ["aviation", "easy"],
-     "en": {"name": "America by Air", "loc": "Commercial aviation gallery", "desc": "How airline travel went from mail planes to jumbo jets, with full-size aircraft overhead."},
-     "es": {"name": "America by Air", "loc": "Galería de aviación comercial", "desc": "Cómo pasó la aviación comercial de aviones de correo a jets gigantes, con aviones de tamaño real arriba."}},
-    {"min": 15, "pri": 2, "themes": ["aviation", "history"],
-     "en": {"name": "Early Flight", "loc": "Early aviation gallery", "desc": "The wild first decade of flying machines after the Wright brothers."},
-     "es": {"name": "Early Flight", "loc": "Galería de aviación temprana", "desc": "La primera década loca de las máquinas voladoras después de los hermanos Wright."}}
+    {"min": 15, "pri": 1, "themes": ["aviation", "space", "easy", "photo"], "x": 50, "y": 38,
+     "en": {"name": "Boeing Milestones of Flight Hall", "zone": "Central hall", "desc": "The icon room — famous aircraft and spacecraft together right at the entrance, with seating nearby.",
+      "know": ["Spirit of St. Louis — Lindbergh’s 1927 transatlantic plane", "Bell X-1 Glamorous Glennis — first to break the sound barrier", "John Glenn’s Mercury capsule Friendship 7", "The touchable Moon rock is back on view"],
+      "tip": "Best single room if the grandparents want maximum payoff for minimum walking."},
+     "es": {"name": "Sala Boeing Milestones of Flight", "zone": "Sala central", "desc": "La sala de los íconos: aviones y naves famosas justo en la entrada, con asientos cerca.",
+      "know": ["Spirit of St. Louis — el avión transatlántico de Lindbergh (1927)", "Bell X-1 Glamorous Glennis — el primero en romper la barrera del sonido", "Friendship 7, la cápsula Mercury de John Glenn", "La roca lunar que se puede tocar está de nuevo en exhibición"],
+      "tip": "La mejor sala única si los abuelos quieren ver mucho caminando poco."}},
+    {"min": 15, "pri": 1, "themes": ["aviation", "history", "photo"], "x": 30, "y": 22,
+     "en": {"name": "Wright Brothers & the 1903 Wright Flyer", "zone": "West wing", "desc": "The original first airplane to make a controlled, powered flight, in its own gallery about the brothers.",
+      "know": ["The real 1903 Flyer — not a replica", "Artifacts from the brothers’ Dayton bicycle shop", "Interactives explain the wing-warping steering they invented"],
+      "tip": "Shoot the photo from the side so the whole wingspan fits."},
+     "es": {"name": "Hermanos Wright y el Wright Flyer de 1903", "zone": "Ala oeste", "desc": "El avión original del primer vuelo controlado con motor, en su propia galería sobre los hermanos.",
+      "know": ["El Flyer de 1903 real, no una réplica", "Objetos del taller de bicicletas de los hermanos en Dayton", "Interactivos explican el control de alas que inventaron"],
+      "tip": "La mejor foto es de lado, para que quepa toda el ala."}},
+    {"min": 20, "pri": 1, "themes": ["space", "history", "photo"], "x": 16, "y": 30,
+     "en": {"name": "Destination Moon (Apollo 11 Columbia)", "zone": "West wing", "desc": "The full Apollo story, anchored by the capsule that carried Armstrong, Aldrin, and Collins home in 1969.",
+      "know": ["Apollo 11 command module Columbia — the astronauts’ ride home", "Neil Armstrong’s Apollo 11 spacesuit", "A massive Saturn V F-1 rocket engine", "Alan Shepard’s suit from America’s first spaceflight"],
+      "tip": "Have the teens guess how three adults fit inside Columbia before they look in."},
+     "es": {"name": "Destination Moon (Columbia del Apollo 11)", "zone": "Ala oeste", "desc": "La historia completa de Apollo, con la cápsula que trajo a Armstrong, Aldrin y Collins en 1969.",
+      "know": ["Módulo de mando Columbia del Apollo 11: el regreso de los astronautas", "El traje espacial de Neil Armstrong del Apollo 11", "Un enorme motor F-1 del cohete Saturn V", "El traje de Alan Shepard, del primer vuelo espacial de EE.UU."],
+      "tip": "Que los muchachos adivinen cómo cabían tres adultos en Columbia antes de asomarse."}},
+    {"min": 20, "pri": 2, "themes": ["space", "handson"], "x": 22, "y": 44,
+     "en": {"name": "Kenneth C. Griffin Exploring the Planets", "zone": "West wing", "desc": "The solar system gallery, with interactive stations and planetary landscapes.",
+      "know": ["Touchscreens and models cover every planet", "Usually calmer when the marquee galleries are packed"]},
+     "es": {"name": "Kenneth C. Griffin Exploring the Planets", "zone": "Ala oeste", "desc": "La galería del sistema solar, con estaciones interactivas y paisajes planetarios.",
+      "know": ["Pantallas y modelos de todos los planetas", "Suele estar más tranquila cuando las galerías famosas están llenas"]}},
+    {"min": 15, "pri": 2, "themes": ["aviation", "easy"], "x": 36, "y": 48,
+     "en": {"name": "America by Air", "zone": "West wing", "desc": "How airline travel went from mail planes to jumbo jets, with full-size aircraft overhead.",
+      "know": ["Full-size airliners hang overhead", "Flat, easy walking — a good grandparent stretch"]},
+     "es": {"name": "America by Air", "zone": "Ala oeste", "desc": "Cómo pasó la aviación comercial de aviones de correo a jets gigantes, con aviones de tamaño real arriba.",
+      "know": ["Aviones comerciales de tamaño real colgados arriba", "Caminata plana y fácil: buen tramo para los abuelos"]}},
+    {"min": 25, "pri": 1, "themes": ["handson"], "x": 62, "y": 46,
+     "en": {"name": "How Things Fly (TEXTRON)", "zone": "East side", "desc": "Push, pull, and test the physics of flight yourself — reopened July 1, 2026 with a wind tunnel and a climb-in Cessna.",
+      "know": ["Just reopened July 1, 2026 — expect it busy", "Wind tunnel demonstrations", "Climb into a real Cessna Skyhawk cockpit"],
+      "tip": "Let the teens run this one; adults can sit at the edge."},
+     "es": {"name": "How Things Fly (TEXTRON)", "zone": "Lado este", "desc": "Empujar, jalar y probar la física del vuelo: reabrió el 1 de julio de 2026 con túnel de viento y una Cessna para subirse.",
+      "know": ["Recién reabierta el 1 de julio de 2026: estará llena", "Demostraciones con túnel de viento", "Pueden subirse a la cabina de una Cessna Skyhawk real"],
+      "tip": "Que los adolescentes manden aquí; los adultos pueden sentarse a un lado."}},
+    {"min": 20, "pri": 2, "themes": ["space", "easy", "photo"], "x": 78, "y": 40,
+     "en": {"name": "RTX Living in the Space Age Hall", "zone": "East wing", "desc": "Brand-new hall (opened July 1, 2026) on how space technology changed daily life, packed with big artifacts.",
+      "know": ["Walk-through Skylab Orbital Workshop", "Full-scale Hubble Space Telescope mockup", "A Blue Origin New Shepard rocket", "Opened July 1, 2026 — the newest big hall in the museum"]},
+     "es": {"name": "Sala RTX Living in the Space Age", "zone": "Ala este", "desc": "Sala nueva (abrió el 1 de julio de 2026) sobre cómo la tecnología espacial cambió la vida diaria, llena de objetos grandes.",
+      "know": ["Estación Skylab por dentro, se camina a través", "Modelo a escala real del telescopio Hubble", "Un cohete New Shepard de Blue Origin", "Abrió el 1 de julio de 2026: la sala grande más nueva del museo"]}},
+    {"min": 15, "pri": 2, "themes": ["space", "history"], "x": 84, "y": 24,
+     "en": {"name": "NSF Discovering Our Universe", "zone": "East wing", "desc": "New astronomy gallery (opened July 1, 2026) on how we learned what the universe is.",
+      "know": ["Hard drives from the Event Horizon Telescope — used to make the first image of a black hole", "Opened July 1, 2026"]},
+     "es": {"name": "NSF Discovering Our Universe", "zone": "Ala este", "desc": "Nueva galería de astronomía (abrió el 1 de julio de 2026) sobre cómo aprendimos qué es el universo.",
+      "know": ["Discos duros del Event Horizon Telescope, usados para la primera imagen de un agujero negro", "Abrió el 1 de julio de 2026"]}},
+    {"min": 15, "pri": 2, "themes": ["aviation", "history"], "x": 66, "y": 18,
+     "en": {"name": "Jay I. Kislak World War II in the Air", "zone": "East wing", "desc": "Redesigned WWII gallery (opened July 1, 2026) on the air war’s tactics, industry, and people.",
+      "know": ["Tuskegee Airmen and WASP stories now featured", "Opened July 1, 2026"]},
+     "es": {"name": "Jay I. Kislak World War II in the Air", "zone": "Ala este", "desc": "Galería renovada de la Segunda Guerra (abrió el 1 de julio de 2026) sobre tácticas, industria y personas de la guerra aérea.",
+      "know": ["Ahora destaca a los Tuskegee Airmen y las pilotos WASP", "Abrió el 1 de julio de 2026"]}}
    ]},
-  {"id": "saam", "stopNum": "2",
-   "en": {"name": "American Art Museum + Portrait Gallery", "note": "Free, no passes, open later than most Smithsonians — the flexible stop and the best air-conditioned break. Two museums share one historic building."},
-   "es": {"name": "Museo de Arte Americano + Galería de Retratos", "note": "Gratis, sin pases y abierto más tarde que la mayoría de los Smithsonian: la parada flexible y la mejor pausa con aire. Dos museos comparten un edificio histórico."},
+  {"id": "saam", "stopNum": "2", "entrance": {"x": 50, "y": 56}, "dividers": [],
+   "annotations": [{"x": 24, "y": 11, "en": "Portrait Gallery", "es": "Galería de Retratos"}, {"x": 76, "y": 11, "en": "American Art", "es": "Arte Americano"}],
+   "en": {"name": "American Art Museum + Portrait Gallery", "note": "Free, no passes, open later than most Smithsonians — the flexible stop and the best air-conditioned break. Two museums share one historic building; enter at 8th & G St NW and start in the courtyard."},
+   "es": {"name": "Museo de Arte Americano + Galería de Retratos", "note": "Gratis, sin pases y abierto más tarde que la mayoría de los Smithsonian: la parada flexible y la mejor pausa con aire. Dos museos comparten un edificio histórico; entren por 8th & G St NW y empiecen en el patio."},
    "exhibits": [
-    {"min": 15, "pri": 1, "themes": ["easy", "photo"],
-     "en": {"name": "Kogod Courtyard", "loc": "Center of the building", "desc": "Glass-canopied indoor courtyard with seating and a café — the best air-conditioned break in DC.", "tip": "Start here, cool down, then split up."},
-     "es": {"name": "Kogod Courtyard", "loc": "Centro del edificio", "desc": "Patio techado de cristal con asientos y café: la mejor pausa con aire acondicionado de DC.", "tip": "Empiecen aquí, refrésquense y luego divídanse."}},
-    {"min": 25, "pri": 1, "themes": ["presidents", "history"],
-     "en": {"name": "America’s Presidents", "loc": "Portrait Gallery side", "desc": "The only complete set of presidential portraits outside the White House.", "tip": "Everyone picks three presidents to find — faster and more fun than reading everything."},
-     "es": {"name": "America’s Presidents", "loc": "Lado de la Galería de Retratos", "desc": "La única colección completa de retratos presidenciales fuera de la Casa Blanca.", "tip": "Que cada quien escoja tres presidentes para encontrar: más rápido y más divertido que leer todo."}},
-    {"min": 10, "pri": 1, "themes": ["presidents", "art", "photo"],
-     "en": {"name": "The Obama portraits", "loc": "With America’s Presidents", "desc": "Kehinde Wiley’s Barack Obama and Amy Sherald’s Michelle Obama — the most-photographed works in the building."},
-     "es": {"name": "Los retratos de los Obama", "loc": "Junto a America’s Presidents", "desc": "El Barack Obama de Kehinde Wiley y la Michelle Obama de Amy Sherald: las obras más fotografiadas del edificio."}},
-    {"min": 10, "pri": 2, "themes": ["art", "photo"],
-     "en": {"name": "Electronic Superhighway (Nam June Paik)", "loc": "American Art side", "desc": "A neon map of the U.S. built from hundreds of TV screens — usually the teens’ favorite artwork here.", "tip": "If it’s off view, the modern wing still has plenty that lands with teens."},
-     "es": {"name": "Electronic Superhighway (Nam June Paik)", "loc": "Lado de arte americano", "desc": "Un mapa neón de EE.UU. hecho con cientos de pantallas: normalmente la obra favorita de los adolescentes.", "tip": "Si no está en exhibición, el ala moderna tiene mucho más que les gusta a los adolescentes."}},
-    {"min": 20, "pri": 2, "themes": ["art"],
-     "en": {"name": "Modern & contemporary wing", "loc": "American Art side", "desc": "American art from the last century — big, colorful rooms that move fast."},
-     "es": {"name": "Ala moderna y contemporánea", "loc": "Lado de arte americano", "desc": "Arte americano del último siglo: salas grandes y coloridas que se recorren rápido."}},
-    {"min": 15, "pri": 2, "themes": ["art", "history"],
-     "en": {"name": "Throne of the Third Heaven (folk art)", "loc": "Folk and self-taught art", "desc": "A glittering foil throne a DC janitor built in secret over 14 years — one of the most surprising objects in the city."},
-     "es": {"name": "Throne of the Third Heaven (arte popular)", "loc": "Arte popular y autodidacta", "desc": "Un trono brillante de papel aluminio que un conserje de DC construyó en secreto durante 14 años: uno de los objetos más sorprendentes de la ciudad."}},
-    {"min": 15, "pri": 2, "themes": ["art", "easy"],
-     "en": {"name": "Luce Foundation Center", "loc": "Open-storage mezzanine", "desc": "Thousands of artworks in glass cases you browse at your own pace, with seating throughout."},
-     "es": {"name": "Luce Foundation Center", "loc": "Mezzanine de almacenamiento abierto", "desc": "Miles de obras en vitrinas para ver a su propio ritmo, con asientos por todos lados."}},
-    {"min": 10, "pri": 2, "themes": ["photo", "history"],
-     "en": {"name": "Great Hall", "loc": "Top floor", "desc": "The ornate top-floor hall from the building’s days as the U.S. Patent Office."},
-     "es": {"name": "Great Hall", "loc": "Último piso", "desc": "La sala ornamentada del último piso, de la época en que el edificio era la Oficina de Patentes."}}
+    {"min": 15, "pri": 1, "themes": ["easy", "photo"], "x": 50, "y": 34,
+     "en": {"name": "Kogod Courtyard", "zone": "Center of the building", "desc": "Glass-canopied indoor courtyard with seating and a café — the best air-conditioned break in DC.",
+      "know": ["Undulating glass canopy by Norman Foster’s studio", "Café and plenty of seating", "Everything in this building is free — no tickets anywhere"],
+      "tip": "Start here, cool down, then split up."},
+     "es": {"name": "Kogod Courtyard", "zone": "Centro del edificio", "desc": "Patio techado de cristal con asientos y café: la mejor pausa con aire acondicionado de DC.",
+      "know": ["Techo ondulado de cristal del estudio de Norman Foster", "Café y muchos asientos", "Todo el edificio es gratis, sin boletos"],
+      "tip": "Empiecen aquí, refrésquense y luego divídanse."}},
+    {"min": 25, "pri": 1, "themes": ["presidents", "history"], "x": 24, "y": 40,
+     "en": {"name": "America’s Presidents", "zone": "Portrait Gallery side", "desc": "The only complete set of presidential portraits outside the White House.",
+      "know": ["Every president from Washington to today", "The famous 1796 Lansdowne portrait of George Washington", "The gallery’s single biggest draw — expect people"],
+      "tip": "Everyone picks three presidents to find — faster and more fun than reading everything."},
+     "es": {"name": "America’s Presidents", "zone": "Lado de la Galería de Retratos", "desc": "La única colección completa de retratos presidenciales fuera de la Casa Blanca.",
+      "know": ["Todos los presidentes, de Washington a hoy", "El famoso retrato Lansdowne de George Washington (1796)", "Lo más visitado de la galería: habrá gente"],
+      "tip": "Que cada quien escoja tres presidentes para encontrar: más rápido y más divertido que leer todo."}},
+    {"min": 10, "pri": 1, "themes": ["presidents", "art", "photo"], "x": 16, "y": 26,
+     "en": {"name": "The Obama portraits", "zone": "Portrait Gallery side", "desc": "Kehinde Wiley’s Barack Obama and Amy Sherald’s Michelle Obama — the most-photographed works in the building.",
+      "know": ["Wiley’s botanical-background Barack Obama", "Sherald’s gray-skin-tone Michelle Obama", "Short photo line on busy days"]},
+     "es": {"name": "Los retratos de los Obama", "zone": "Lado de la Galería de Retratos", "desc": "El Barack Obama de Kehinde Wiley y la Michelle Obama de Amy Sherald: las obras más fotografiadas del edificio.",
+      "know": ["El Barack Obama de Wiley con fondo de plantas", "La Michelle Obama de Sherald en tonos grises", "Puede haber una fila corta para fotos"]}},
+    {"min": 10, "pri": 2, "themes": ["art", "photo"], "x": 70, "y": 44,
+     "en": {"name": "Electronic Superhighway (Nam June Paik)", "zone": "American Art side", "desc": "A neon map of the U.S. built from 300+ TV screens — usually the teens’ favorite artwork here.",
+      "know": ["336 TVs, 50 DVD players, and neon tubing form the U.S. map", "On display at this museum since 2006"],
+      "tip": "If it’s off view, the modern wing still has plenty that lands with teens."},
+     "es": {"name": "Electronic Superhighway (Nam June Paik)", "zone": "Lado de arte americano", "desc": "Un mapa neón de EE.UU. hecho con más de 300 pantallas: normalmente la obra favorita de los adolescentes.",
+      "know": ["336 televisores, 50 reproductores DVD y neón forman el mapa", "En exhibición en este museo desde 2006"],
+      "tip": "Si no está en exhibición, el ala moderna tiene mucho más que les gusta a los adolescentes."}},
+    {"min": 20, "pri": 2, "themes": ["art"], "x": 82, "y": 32,
+     "en": {"name": "Modern & contemporary wing", "zone": "American Art side", "desc": "American art from the last century — big, colorful rooms that move fast.",
+      "know": ["Reimagined galleries opened in 2023", "Easy to skim in 15–20 minutes"]},
+     "es": {"name": "Ala moderna y contemporánea", "zone": "Lado de arte americano", "desc": "Arte americano del último siglo: salas grandes y coloridas que se recorren rápido.",
+      "know": ["Galerías renovadas en 2023", "Se recorre en 15–20 minutos sin problema"]}},
+    {"min": 15, "pri": 2, "themes": ["art", "history"], "x": 74, "y": 18,
+     "en": {"name": "Throne of the Third Heaven (folk art)", "zone": "American Art side", "desc": "A glittering foil throne a DC janitor built in secret over 14 years — one of the most surprising objects in the city.",
+      "know": ["Built by James Hampton in a rented garage, discovered after his death", "Made of aluminum foil, light bulbs, and salvaged furniture"]},
+     "es": {"name": "Throne of the Third Heaven (arte popular)", "zone": "Lado de arte americano", "desc": "Un trono brillante de papel aluminio que un conserje de DC construyó en secreto durante 14 años: uno de los objetos más sorprendentes de la ciudad.",
+      "know": ["James Hampton lo construyó en un garaje rentado; se descubrió tras su muerte", "Hecho de papel aluminio, focos y muebles rescatados"]}},
+    {"min": 15, "pri": 2, "themes": ["art", "easy"], "x": 56, "y": 14,
+     "en": {"name": "Luce Foundation Center", "zone": "Upper floors", "desc": "Open storage — thousands of artworks in glass cases you browse at your own pace, with seating throughout.",
+      "know": ["Over 3,000 objects in visible storage", "Self-paced and rarely crowded"]},
+     "es": {"name": "Luce Foundation Center", "zone": "Pisos superiores", "desc": "Almacenamiento abierto: miles de obras en vitrinas para ver a su propio ritmo, con asientos por todos lados.",
+      "know": ["Más de 3,000 objetos en almacenamiento visible", "A su propio ritmo y casi nunca lleno"]}},
+    {"min": 10, "pri": 2, "themes": ["photo", "history"], "x": 34, "y": 14,
+     "en": {"name": "Great Hall", "zone": "Top floor, Portrait Gallery side", "desc": "The ornate top-floor hall from the building’s days as the U.S. Patent Office.",
+      "know": ["Lincoln’s second inaugural ball was held in this building in 1865", "Stained glass and colorful tilework — a quick, striking photo stop"]},
+     "es": {"name": "Great Hall", "zone": "Último piso, lado de la Galería de Retratos", "desc": "La sala ornamentada del último piso, de la época en que el edificio era la Oficina de Patentes.",
+      "know": ["El segundo baile inaugural de Lincoln fue en este edificio en 1865", "Vitrales y azulejos coloridos: parada rápida y vistosa para fotos"]}}
    ]},
-  {"id": "spy", "stopNum": "3",
-   "en": {"name": "International Spy Museum", "note": "Paid timed tickets; the most interactive stop of the day — built for the teens. Do the cover-identity setup first and the whole visit gets better."},
-   "es": {"name": "Museo Internacional del Espionaje", "note": "Boletos pagados con horario; la parada más interactiva del día, hecha para los adolescentes. Hagan primero la identidad secreta y toda la visita mejora."},
+  {"id": "spy", "stopNum": "3", "entrance": {"x": 50, "y": 56}, "dividers": [20, 40],
+   "annotations": [{"x": 15, "y": 9.5, "en": "Level 5 — start", "es": "Nivel 5 — inicio"}, {"x": 13, "y": 27.5, "en": "Level 4", "es": "Nivel 4"}, {"x": 13, "y": 47, "en": "Exit level", "es": "Salida"}],
+   "en": {"name": "International Spy Museum", "note": "Paid timed tickets; the most interactive stop of the day. The museum’s own recommended flow is: take the elevator to Level 5, get your cover identity at the Briefing Center, then work your way down. Full visits run 2–3 hours — this route keeps it to ~90 min."},
+   "es": {"name": "Museo Internacional del Espionaje", "note": "Boletos pagados con horario; la parada más interactiva del día. El flujo que recomienda el propio museo: subir en elevador al nivel 5, recibir la identidad secreta en el Briefing Center y bajar piso por piso. La visita completa toma 2–3 horas; esta ruta la deja en ~90 min."},
    "exhibits": [
-    {"min": 10, "pri": 1, "themes": ["spy", "handson"],
-     "en": {"name": "Undercover Mission setup", "loc": "Briefing Center, at the start", "desc": "Everyone adopts a cover identity and completes missions at stations through the whole museum.", "tip": "Don’t rush the setup — the rest of the visit is better when everyone has a cover."},
-     "es": {"name": "Inicio de la Undercover Mission", "loc": "Briefing Center, al inicio", "desc": "Cada quien adopta una identidad secreta y completa misiones en estaciones por todo el museo.", "tip": "No apuren el inicio: la visita mejora cuando todos tienen su identidad."}},
-    {"min": 20, "pri": 1, "themes": ["spy", "handson"],
-     "en": {"name": "Interactive skill stations", "loc": "Throughout the museum", "desc": "Memory, observation, and risk challenges scored against your cover identity."},
-     "es": {"name": "Estaciones interactivas", "loc": "Por todo el museo", "desc": "Retos de memoria, observación y riesgo que suman puntos a tu identidad secreta."}},
-    {"min": 15, "pri": 1, "themes": ["spy", "history"],
-     "en": {"name": "Spy gadgets & concealments", "loc": "Tradecraft galleries", "desc": "Real tradecraft: hidden cameras, disguises, and concealment devices used by actual intelligence services."},
-     "es": {"name": "Gadgets y escondites de espías", "loc": "Galerías de tradecraft", "desc": "Espionaje real: cámaras ocultas, disfraces y dispositivos de ocultamiento usados por servicios de inteligencia."}},
-    {"min": 15, "pri": 2, "themes": ["spy", "history"],
-     "en": {"name": "Codebreaking & cipher machines", "loc": "History galleries", "desc": "How codes get made and broken, including WWII-era cipher machines."},
-     "es": {"name": "Códigos y máquinas de cifrado", "loc": "Galerías de historia", "desc": "Cómo se hacen y se rompen los códigos, incluyendo máquinas de cifrado de la Segunda Guerra."}},
-    {"min": 15, "pri": 2, "themes": ["history", "spy"],
-     "en": {"name": "Cold War Berlin", "loc": "History galleries", "desc": "The spy capital of the world — tunnels, checkpoints, and double agents."},
-     "es": {"name": "Berlín en la Guerra Fría", "loc": "Galerías de historia", "desc": "La capital mundial del espionaje: túneles, puntos de control y agentes dobles."}},
-    {"min": 10, "pri": 1, "themes": ["spy", "handson"],
-     "en": {"name": "Debriefing Center", "loc": "At the end", "desc": "See how your mission performance scored across the visit.", "tip": "Don’t skip it — it’s the payoff of the cover identity."},
-     "es": {"name": "Debriefing Center", "loc": "Al final", "desc": "Revisen cómo les fue en la misión durante toda la visita.", "tip": "No se lo salten: es la recompensa de la identidad secreta."}}
+    {"min": 10, "pri": 1, "themes": ["spy", "handson"], "x": 22, "y": 14,
+     "en": {"name": "Briefing Center & Undercover Mission", "zone": "Level 5 — start here", "desc": "Watch the short briefing film, then everyone adopts a cover identity for missions throughout the museum.",
+      "know": ["You get a badge with an access code — keep it handy", "Your cover identity follows you at kiosks through the whole visit"],
+      "tip": "Don’t rush the setup — the rest of the visit is better when everyone has a cover."},
+     "es": {"name": "Briefing Center y Undercover Mission", "zone": "Nivel 5 — empiecen aquí", "desc": "Vean el video corto de inducción y cada quien adopta una identidad secreta para misiones por todo el museo.",
+      "know": ["Reciben un gafete con código de acceso: téngalo a la mano", "La identidad secreta los sigue en kioscos durante toda la visita"],
+      "tip": "No apuren el inicio: la visita mejora cuando todos tienen su identidad."}},
+    {"min": 20, "pri": 1, "themes": ["spy", "history"], "x": 46, "y": 14,
+     "en": {"name": "Stealing Secrets: gadgets & tradecraft", "zone": "Level 5", "desc": "Real tradecraft: hidden cameras, disguises, concealment devices, and how intelligence actually gets collected.",
+      "know": ["Real devices used by actual intelligence services", "The gadget cases are the museum’s signature collection"]},
+     "es": {"name": "Stealing Secrets: gadgets y oficio", "zone": "Nivel 5", "desc": "Espionaje real: cámaras ocultas, disfraces, dispositivos de ocultamiento y cómo se recolecta inteligencia de verdad.",
+      "know": ["Dispositivos reales usados por servicios de inteligencia", "Las vitrinas de gadgets son la colección insignia del museo"]}},
+    {"min": 10, "pri": 1, "themes": ["spy", "history"], "x": 70, "y": 14,
+     "en": {"name": "Berlin Tunnel", "zone": "Level 5", "desc": "A real six-foot section of the 1950s CIA/MI6 tunnel dug under Berlin to tap Soviet cables.",
+      "know": ["Excavated from the actual tunnel discovered in 1956", "One of the museum’s most talked-about artifacts"]},
+     "es": {"name": "Túnel de Berlín", "zone": "Nivel 5", "desc": "Una sección real de casi dos metros del túnel que la CIA y el MI6 cavaron bajo Berlín en los años 50 para interceptar cables soviéticos.",
+      "know": ["Excavada del túnel real descubierto en 1956", "Uno de los objetos más comentados del museo"]}},
+    {"min": 15, "pri": 2, "themes": ["spy", "history"], "x": 84, "y": 26,
+     "en": {"name": "Codebreaking & analysis", "zone": "Levels 5–4", "desc": "How codes get made and broken, and how analysts turn raw intel into decisions.",
+      "know": ["Cipher machines from the World War era", "Good stop for puzzle-minded teens"]},
+     "es": {"name": "Códigos y análisis", "zone": "Niveles 5–4", "desc": "Cómo se hacen y se rompen los códigos, y cómo los analistas convierten datos en decisiones.",
+      "know": ["Máquinas de cifrado de la era de las guerras mundiales", "Buena parada para adolescentes que aman los acertijos"]}},
+    {"min": 20, "pri": 2, "themes": ["history", "spy"], "x": 66, "y": 32,
+     "en": {"name": "Spying That Shaped History", "zone": "Level 4", "desc": "Espionage stories from the 16th century to today, told largely through first-person video accounts.",
+      "know": ["Covers real operations from centuries of spycraft", "Text-heavier — grandparents may like it, teens may skim"]},
+     "es": {"name": "Spying That Shaped History", "zone": "Nivel 4", "desc": "Historias de espionaje desde el siglo XVI hasta hoy, contadas sobre todo con testimonios en video.",
+      "know": ["Cubre operaciones reales de varios siglos de espionaje", "Tiene más texto: puede gustar a los abuelos y aburrir a los adolescentes"]}},
+    {"min": 10, "pri": 2, "themes": ["spy", "photo"], "x": 42, "y": 32,
+     "en": {"name": "License to Thrill: spies on screen", "zone": "Level 4", "desc": "Spies in movies and TV — Bond, Bourne, The Americans — next to testimony from real officers.",
+      "know": ["Film clips paired with real-spy commentary", "Quick and fun; easy to skim"]},
+     "es": {"name": "License to Thrill: espías en pantalla", "zone": "Nivel 4", "desc": "Espías del cine y la TV — Bond, Bourne, The Americans — junto a testimonios de oficiales reales.",
+      "know": ["Escenas de películas comentadas por espías reales", "Rápida y divertida; se recorre fácil"]}},
+    {"min": 20, "pri": 1, "themes": ["spy", "handson"], "x": 20, "y": 32,
+     "en": {"name": "Interactive skill stations", "zone": "Throughout Levels 5–4", "desc": "Memory, observation, and risk challenges scored against your cover identity as you go.",
+      "know": ["Stations are spread along the route — don’t save them for the end", "Scores feed your final debrief"]},
+     "es": {"name": "Estaciones interactivas", "zone": "Por los niveles 5–4", "desc": "Retos de memoria, observación y riesgo que suman puntos a tu identidad secreta durante el recorrido.",
+      "know": ["Las estaciones están repartidas por la ruta: no las dejen para el final", "Los puntos alimentan el debrief final"]}},
+    {"min": 10, "pri": 1, "themes": ["spy", "handson"], "x": 32, "y": 48,
+     "en": {"name": "Debriefing Center", "zone": "Near the exit", "desc": "See how your mission performance scored across the visit.",
+      "know": ["Pulls together everything your badge recorded", "The teens will want to compare scores"],
+      "tip": "Don’t skip it — it’s the payoff of the cover identity."},
+     "es": {"name": "Debriefing Center", "zone": "Cerca de la salida", "desc": "Revisen cómo les fue en la misión durante toda la visita.",
+      "know": ["Junta todo lo que registró su gafete", "Los muchachos van a querer comparar puntajes"],
+      "tip": "No se lo salten: es la recompensa de la identidad secreta."}}
    ]}
 ];
 
@@ -544,15 +643,49 @@ let currentTab = 'map';
 function loadGuideState() {
   try {
     const s = JSON.parse(localStorage.getItem('dc-guide-state') || 'null');
-    if (s) return {themes: new Set(s.themes || []), pace: s.pace === 'quick' ? 'quick' : 'full', picks: new Set(s.picks || [])};
+    if (s) return {themes: new Set(s.themes || []), pace: s.pace === 'quick' ? 'quick' : 'full', picks: new Set(s.picks || []), museum: ['nasm', 'saam', 'spy'].includes(s.museum) ? s.museum : 'nasm'};
   } catch (e) {}
-  return {themes: new Set(), pace: 'full', picks: new Set()};
+  return {themes: new Set(), pace: 'full', picks: new Set(), museum: 'nasm'};
 }
 const guideState = loadGuideState();
 function saveGuideState() {
   try {
-    localStorage.setItem('dc-guide-state', JSON.stringify({themes: [...guideState.themes], pace: guideState.pace, picks: [...guideState.picks]}));
+    localStorage.setItem('dc-guide-state', JSON.stringify({themes: [...guideState.themes], pace: guideState.pace, picks: [...guideState.picks], museum: guideState.museum}));
   } catch (e) {}
+}
+function setGuideMuseum(id) {
+  guideState.museum = id;
+  saveGuideState(); renderGuide();
+}
+function scrollToExhibit(id) {
+  const el = document.getElementById('ex-' + id);
+  if (!el) return;
+  el.scrollIntoView({behavior: 'smooth', block: 'center'});
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 1400);
+}
+function museumMapSvg(m, visible) {
+  const route = [`${m.entrance.x},${m.entrance.y}`].concat(visible.map(ex => `${ex.x},${ex.y}`)).join(' ');
+  const dividers = (m.dividers || []).map(y =>
+    `<line x1="5" y1="${y}" x2="95" y2="${y}" stroke="#cbd5e1" stroke-width="0.4" stroke-dasharray="2 1.6"/>`).join('');
+  const notes = (m.annotations || []).map(a =>
+    `<text x="${a.x}" y="${a.y}" font-size="3" fill="#94a3b8" font-weight="700" text-anchor="middle">${escapeHtml(a[lang])}</text>`).join('');
+  const stopsSvg = m.exhibits.map((ex, i) => {
+    const on = visible.includes(ex);
+    const picked = guideState.picks.has(m.id + '-' + i);
+    return `<g onclick="scrollToExhibit('${m.id}-${i}')" style="cursor:pointer" opacity="${on ? 1 : 0.25}">
+      <circle cx="${ex.x}" cy="${ex.y}" r="3.4" fill="${picked ? '#047857' : '#2563eb'}" stroke="white" stroke-width="0.7"/>
+      <text x="${ex.x}" y="${ex.y + 1.2}" font-size="3.4" fill="white" font-weight="800" text-anchor="middle">${i + 1}</text>
+    </g>`;
+  }).join('');
+  return `<svg viewBox="0 0 100 63" class="museumMap" role="img" aria-label="${escapeHtml(labels[lang].mapTitle)}">
+    <rect x="4" y="5" width="92" height="51" rx="3" fill="#eff6ff" stroke="#93c5fd" stroke-width="0.6"/>
+    ${dividers}${notes}
+    <polyline points="${route}" fill="none" stroke="#2563eb" stroke-width="0.9" stroke-dasharray="2.2 1.8" opacity="0.65"/>
+    <circle cx="${m.entrance.x}" cy="${m.entrance.y}" r="2.6" fill="#0f172a" stroke="white" stroke-width="0.6"/>
+    <text x="${m.entrance.x}" y="${m.entrance.y + 5.4}" font-size="3" fill="#0f172a" font-weight="800" text-anchor="middle">${escapeHtml(labels[lang].entrance)}</text>
+    ${stopsSvg}
+  </svg>`;
 }
 function toggleTheme(id) {
   guideState.themes.has(id) ? guideState.themes.delete(id) : guideState.themes.add(id);
@@ -587,52 +720,62 @@ function renderGuide() {
     `<button class="chip ${guideState.pace === p ? 'active' : ''}" onclick="setPace('${p}')">${escapeHtml(p === 'quick' ? t9.paceQuick : t9.paceFull)}</button>`
   ).join('');
 
-  const museums = guideMuseums.map(m => {
-    const stop = stops.find(s => s.num === m.stopNum);
-    const matched = m.exhibits.filter(exhibitMatches);
-    const picked = m.exhibits.filter((ex, i) => guideState.picks.has(m.id + '-' + i));
-    const pickedMin = picked.reduce((a, ex) => a + ex.min, 0);
-    const cards = matched.length ? matched.map(ex => {
-      const i = m.exhibits.indexOf(ex);
-      const id = m.id + '-' + i;
-      const isPicked = guideState.picks.has(id);
-      const d = ex[lang];
-      const tags = ex.themes.map(tid => {
-        const th = guideThemes.find(x => x.id === tid);
-        return `<span class="exTag ${guideState.themes.has(tid) ? 'hit' : ''}">${escapeHtml(th ? th[lang] : tid)}</span>`;
-      }).join('');
-      return `<div class="exCard ${isPicked ? 'picked' : ''}">
-        <label class="exTop"><input type="checkbox" ${isPicked ? 'checked' : ''} onchange="togglePick('${id}')">
-          <div>
-            <div class="exName">${escapeHtml(d.name)} <span class="exMeta">· ~${ex.min} min · ${escapeHtml(d.loc)}</span></div>
-            <p style="margin:4px 0 0">${escapeHtml(d.desc)}</p>
-            ${d.tip ? `<p class="small" style="margin:5px 0 0">💡 ${escapeHtml(d.tip)}</p>` : ''}
-            <div class="exTags">${tags}</div>
-          </div>
-        </label>
-      </div>`;
-    }).join('') : `<div class="noMatch">${escapeHtml(t9.noMatch)}</div>`;
-    return `<div class="guideMuseum">
-      <h3>${escapeHtml(m[lang].name)}</h3>
-      <div class="guideMeta">${stop ? escapeHtml(stop.time) + ' · ' + escapeHtml(stop[lang].address) : ''}</div>
-      <p style="margin:6px 0 0">${escapeHtml(m[lang].note)}</p>
-      <div class="planBar">
-        <span>✔ ${picked.length} ${escapeHtml(t9.planPicked)} · ${pickedMin} ${escapeHtml(t9.planMinutes)}</span>
-        <span>${escapeHtml(t9.showingA)} ${matched.length} ${escapeHtml(t9.showingB)} ${m.exhibits.length} ${escapeHtml(t9.showingC)}</span>
-      </div>
-      ${picked.length ? '' : `<p class="small" style="margin:0 0 4px">${escapeHtml(t9.planHint)}</p>`}
-      ${cards}
+  const museumChips = guideMuseums.map(m =>
+    `<button class="chip ${guideState.museum === m.id ? 'active' : ''}" onclick="setGuideMuseum('${m.id}')">${escapeHtml(m[lang].name)}</button>`
+  ).join('');
+
+  const m = guideMuseums.find(x => x.id === guideState.museum) || guideMuseums[0];
+  const stop = stops.find(s => s.num === m.stopNum);
+  const matched = m.exhibits.filter(exhibitMatches);
+  const picked = m.exhibits.filter((ex, i) => guideState.picks.has(m.id + '-' + i));
+  const pickedMin = picked.reduce((a, ex) => a + ex.min, 0);
+  const cards = matched.length ? matched.map(ex => {
+    const i = m.exhibits.indexOf(ex);
+    const id = m.id + '-' + i;
+    const isPicked = guideState.picks.has(id);
+    const d = ex[lang];
+    const tags = ex.themes.map(tid => {
+      const th = guideThemes.find(x => x.id === tid);
+      return `<span class="exTag ${guideState.themes.has(tid) ? 'hit' : ''}">${escapeHtml(th ? th[lang] : tid)}</span>`;
+    }).join('');
+    const know = (d.know && d.know.length) ? `<div class="knowList"><b>${escapeHtml(t9.knowLabel)}</b>${listHtml(d.know)}</div>` : '';
+    return `<div class="exCard ${isPicked ? 'picked' : ''}" id="ex-${id}">
+      <label class="exTop"><input type="checkbox" ${isPicked ? 'checked' : ''} onchange="togglePick('${id}')">
+        <div>
+          <div class="exName"><span class="exNum">${i + 1}</span>${escapeHtml(d.name)} <span class="exMeta">· ~${ex.min} min · ${escapeHtml(d.zone)}</span></div>
+          <p style="margin:4px 0 0">${escapeHtml(d.desc)}</p>
+          ${know}
+          ${d.tip ? `<p class="small" style="margin:6px 0 0">💡 ${escapeHtml(d.tip)}</p>` : ''}
+          <div class="exTags">${tags}</div>
+        </div>
+      </label>
     </div>`;
-  }).join('');
+  }).join('') : `<div class="noMatch">${escapeHtml(t9.noMatch)}</div>`;
+
+  const museumHtml = `<div class="guideMuseum">
+    <h3>${escapeHtml(m[lang].name)}</h3>
+    <div class="guideMeta">${stop ? escapeHtml(stop.time) + ' · ' + escapeHtml(stop[lang].address) : ''}</div>
+    <p style="margin:6px 0 0">${escapeHtml(m[lang].note)}</p>
+    ${museumMapSvg(m, matched)}
+    <p class="mapNote">${escapeHtml(t9.mapNote)}</p>
+    <div class="planBar">
+      <span>✔ ${picked.length} ${escapeHtml(t9.planPicked)} · ${pickedMin} ${escapeHtml(t9.planMinutes)}</span>
+      <span>${escapeHtml(t9.showingA)} ${matched.length} ${escapeHtml(t9.showingB)} ${m.exhibits.length} ${escapeHtml(t9.showingC)}</span>
+    </div>
+    ${picked.length ? '' : `<p class="small" style="margin:0 0 4px">${escapeHtml(t9.planHint)}</p>`}
+    ${cards}
+  </div>`;
 
   el.innerHTML = `<div class="prefsPanel">
     <h2 style="margin:0 0 6px;font-size:17px;">${escapeHtml(t9.guideTitle)}</h2>
     <p style="margin:0 0 8px">${escapeHtml(t9.guideIntro)}</p>
-    <b class="small">${escapeHtml(t9.guideThemesLabel)}</b>
+    <b class="small">${escapeHtml(t9.museumPick)}</b>
+    <div class="chipRow">${museumChips}</div>
+    <b class="small" style="display:block;margin-top:12px">${escapeHtml(t9.guideThemesLabel)}</b>
     <div class="chipRow">${chips}</div>
     <b class="small" style="display:block;margin-top:12px">${escapeHtml(t9.guidePaceLabel)}</b>
     <div class="chipRow paceRow">${paceChips}</div>
-  </div>${museums}`;
+  </div>${museumHtml}`;
 }
 
 function setTab(tab) {
